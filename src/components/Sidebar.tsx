@@ -3,7 +3,7 @@ import { Note } from "../types/note";
 import "../styles/sidebar.css";
 import InputModal from "./InputModal";
 import ContextMenu from "./ContextMenu";
-import { ArrowUpDown, Search } from "lucide-react";
+import { ArrowUpDown, Search, Plus } from "lucide-react";
 import { RichItem } from "./RichItem";
 import { handleSelection } from "../utils/selection";
 import { filesystem } from "../services/filesystem";
@@ -262,8 +262,8 @@ export default function Sidebar({
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                    <button onClick={onCreateNote} title="New Note" style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: '6px' }}>
-                        <span style={{ fontSize: '20px', fontWeight: 'bold' }}>+</span>
+                    <button onClick={onCreateNote} title="New Note" style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: '6px', display: 'flex', alignItems: 'center' }}>
+                        <Plus size={16} color="var(--text-color)" />
                     </button>
                     <button onClick={onAdvancedSearch} title="Advanced Search (In Files)" style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: '6px' }}>
                         <Search size={16} color="var(--text-color)" />
