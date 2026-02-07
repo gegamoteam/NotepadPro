@@ -12,7 +12,7 @@ import Onboarding from "./components/Onboarding";
 import MenuBar from "./components/MenuBar";
 import { useNotes } from "./hooks/useNotes";
 import { useAutosave } from "./hooks/useAutosave";
-import { settingsService } from "./services/settings"; // Needed for checking first run
+import { settingsService, AutosaveSettings } from "./services/settings";
 import "./styles/global.css";
 
 import "./styles/resizer.css";
@@ -30,6 +30,11 @@ function App() {
 
   // Settings / Dark Mode State (Placeholder for now)
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  // Autosave settings
+  const [autosaveSettings, setAutosaveSettings] = useState<AutosaveSettings>(() =>
+    settingsService.loadAutosaveSettings()
+  );
 
   // Check Onboarding
   useEffect(() => {
@@ -133,8 +138,18 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  // Auto-save: User wants "instantly", 100-500ms debounce effectively works like instant for UX
-  useAutosave(saveActiveNote, 200, isDirty);
+  // Auto-save: Controlled by settings
+  useAutosave(
+    autosaveSettings.enabled ? saveActiveNote : () => { },
+    autosaveSettings.interval,
+    autosaveSettings.enabled && isDirty
+  );
+
+  // Handler for autosave settings change
+  const handleAutosaveChange = (settings: AutosaveSettings) => {
+    setAutosaveSettings(settings);
+    settingsService.saveAutosaveSettings(settings);
+  };
 
   // Shortcuts
   useEffect(() => {
@@ -219,6 +234,8 @@ function App() {
         onThemeChange={setTheme}
         rootPath={rootPath}
         onChangeRootPath={handleChangeRoot}
+        autosaveSettings={autosaveSettings}
+        onAutosaveChange={handleAutosaveChange}
       />
 
       <Onboarding

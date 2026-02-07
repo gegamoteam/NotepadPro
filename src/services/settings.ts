@@ -4,6 +4,16 @@ import { filesystem } from "./filesystem";
 const SETTINGS_FILE = "settings.json";
 const PINNED_FILE = "pinned.json";
 
+export interface AutosaveSettings {
+    enabled: boolean;
+    interval: number; // in ms
+}
+
+const DEFAULT_AUTOSAVE: AutosaveSettings = {
+    enabled: true,
+    interval: 200
+};
+
 export const settingsService = {
     async getSettingsPath(): Promise<string> {
         const docs = await documentDir();
@@ -22,7 +32,7 @@ export const settingsService = {
             const data = JSON.parse(content);
             return data.pinned || [];
         } catch {
-            return []; // Return empty if fails or doesn't exist
+            return [];
         }
     },
 
@@ -32,7 +42,24 @@ export const settingsService = {
         return await filesystem.writeNote(path, content);
     },
 
-    // Placeholder for other settings if needed
+    // Autosave settings
+    loadAutosaveSettings(): AutosaveSettings {
+        try {
+            const saved = localStorage.getItem("autosaveSettings");
+            if (saved) {
+                return { ...DEFAULT_AUTOSAVE, ...JSON.parse(saved) };
+            }
+        } catch {
+            // Ignore parse errors
+        }
+        return DEFAULT_AUTOSAVE;
+    },
+
+    saveAutosaveSettings(settings: AutosaveSettings): void {
+        localStorage.setItem("autosaveSettings", JSON.stringify(settings));
+    },
+
+    // Onboarding
     async hasSeenOnboarding(): Promise<boolean> {
         return !!(await localStorage.getItem("hasSeenOnboarding"));
     },
@@ -41,3 +68,4 @@ export const settingsService = {
         await localStorage.setItem("hasSeenOnboarding", "true");
     }
 };
+

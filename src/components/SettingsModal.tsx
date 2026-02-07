@@ -1,5 +1,6 @@
 import "../styles/modal.css";
 import { filesystem } from "../services/filesystem";
+import { AutosaveSettings } from "../services/settings";
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -8,10 +9,13 @@ interface SettingsModalProps {
     onThemeChange: (t: 'light' | 'dark') => void;
     rootPath: string;
     onChangeRootPath: () => void;
+    autosaveSettings: AutosaveSettings;
+    onAutosaveChange: (settings: AutosaveSettings) => void;
 }
 
 export default function SettingsModal({
-    isOpen, onClose, theme, onThemeChange, rootPath, onChangeRootPath
+    isOpen, onClose, theme, onThemeChange, rootPath, onChangeRootPath,
+    autosaveSettings, onAutosaveChange
 }: SettingsModalProps) {
     if (!isOpen) return null;
 
@@ -26,6 +30,16 @@ export default function SettingsModal({
                 alert("Failed to clear hidden files.");
             }
         }
+    };
+
+    const toggleAutosave = () => {
+        onAutosaveChange({ ...autosaveSettings, enabled: !autosaveSettings.enabled });
+    };
+
+    const updateInterval = (value: number) => {
+        // Clamp between 100ms and 5000ms
+        const clamped = Math.max(100, Math.min(5000, value));
+        onAutosaveChange({ ...autosaveSettings, interval: clamped });
     };
 
     return (
@@ -59,6 +73,51 @@ export default function SettingsModal({
                                     Dark
                                 </button>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Autosave */}
+                    <div className="setting-group">
+                        <h4 style={{ margin: '0 0 10px 0' }}>Autosave</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label>Enable Autosave</label>
+                                <button
+                                    onClick={toggleAutosave}
+                                    style={{
+                                        padding: '5px 15px',
+                                        cursor: 'pointer',
+                                        background: autosaveSettings.enabled ? 'var(--accent-color)' : '#ddd',
+                                        color: autosaveSettings.enabled ? '#fff' : '#000',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        minWidth: '60px'
+                                    }}
+                                >
+                                    {autosaveSettings.enabled ? 'On' : 'Off'}
+                                </button>
+                            </div>
+                            {autosaveSettings.enabled && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <label style={{ fontSize: '0.9em' }}>Interval</label>
+                                        <span style={{ fontSize: '0.85em', color: '#888' }}>{autosaveSettings.interval}ms</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="100"
+                                        max="5000"
+                                        step="100"
+                                        value={autosaveSettings.interval}
+                                        onChange={(e) => updateInterval(parseInt(e.target.value))}
+                                        style={{ width: '100%', cursor: 'pointer' }}
+                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#888' }}>
+                                        <span>100ms (instant)</span>
+                                        <span>5000ms (5s)</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -98,28 +157,6 @@ export default function SettingsModal({
                         </div>
                     </div>
 
-                    {/* System */}
-                    <div className="setting-group">
-                        <h4 style={{ margin: '0 0 10px 0' }}>System Integration</h4>
-                        <p style={{ fontSize: '12px' }}>
-                            To access NoteX from anywhere, add the installation folder to your system PATH.
-                        </p>
-                        <div style={{
-                            background: 'var(--sidebar-bg)',
-                            padding: '10px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            marginTop: '5px',
-                            color: 'var(--text-color)',
-                            border: '1px solid var(--border-color)'
-                        }}>
-                            <strong>Manual Setup:</strong><br />
-                            1. Search "Edit environment variables for your account"<br />
-                            2. Edit "Path" variable<br />
-                            3. Add the folder containing <code>notex.exe</code>
-                        </div>
-                    </div>
-
                 </div>
 
                 <div className="modal-footer" style={{ padding: '20px', borderTop: '1px solid var(--border-color)', textAlign: 'right' }}>
@@ -129,3 +166,4 @@ export default function SettingsModal({
         </div>
     );
 }
+
