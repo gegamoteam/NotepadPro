@@ -175,12 +175,14 @@ export function useNotes(rootPath: string) {
         setIsDirty(true);
 
         if (!activeNote) {
-            // Auto-create logic (Draft)
+            // Auto-create logic (Draft) - only create after meaningful content
+            // Require at least 5 characters to avoid accidental file creation
             try {
-                if (content.trim().length > 0) {
+                const trimmedContent = content.trim();
+                if (trimmedContent.length >= 5) {
                     let name = `Untitled-${Date.now()}.txt`;
                     const firstLine = content.split('\n')[0].trim().replace(/[\\/:*?"<>|]/g, "");
-                    if (firstLine.length > 0 && firstLine.length < 30) {
+                    if (firstLine.length >= 3 && firstLine.length < 30) {
                         name = `${firstLine}.txt`;
                     }
 
@@ -199,11 +201,16 @@ export function useNotes(rootPath: string) {
                 console.error("Failed to auto-create draft note:", e);
             }
         } else {
-            // Continuous Title Update
+            // Continuous Title Update for .txt files
+            // Only rename if:
+            // 1. File is a .txt
+            // 2. First line has reasonable content (at least 3 chars)
+            // 3. First line is different from current name
             if (activeNote.name.endsWith(".txt")) {
                 const firstLine = content.split('\n')[0].trim().replace(/[\\/:*?"<>|]/g, "");
 
-                if (firstLine.length > 0 && firstLine.length < 50) {
+                // Only rename if first line has meaningful content
+                if (firstLine.length >= 3 && firstLine.length < 50) {
                     const newName = `${firstLine}.txt`;
 
                     if (newName !== activeNote.name) {
@@ -212,17 +219,11 @@ export function useNotes(rootPath: string) {
                         }
 
                         debounceTimer.current = window.setTimeout(() => {
-                            // We need to pass the LATEST activeNote path here. 
-                            // Since this is a closure, activeNote might be stale if we aren't careful?
-                            // flexible rename using current activeNote path from state? 
-                            // Actually, activeNote in the dependency array is updated. 
-                            // HOWEVER, inside setTimeout, we might have stale closure issues if activeNote changes quickly.
-                            // But title update only happens when WRITING to activeNote.
-                            // Safety check:
                             renameItem(activeNote.path, newName);
-                        }, 100); // 100ms debounce for near-instant feel
+                        }, 100);
                     }
                 }
+                // If first line is empty or too short, keep the existing name - don't rename
             }
         }
     }, [activeNote, rootPath, refreshNotes, renameItem]);
