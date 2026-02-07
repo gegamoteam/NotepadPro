@@ -110,6 +110,11 @@ export function useNotes(rootPath: string) {
 
     // Load a note
     const openNote = useCallback(async (note: Note) => {
+        // Cancel any pending rename timer from previous note
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+            debounceTimer.current = null;
+        }
         try {
             const content = await filesystem.readNote(note.path);
             setActiveNote(note);
@@ -184,13 +189,19 @@ export function useNotes(rootPath: string) {
                 const newName = `${firstLine}.txt`;
 
                 if (newName !== activeNote.name) {
+                    // Cancel any pending rename
                     if (debounceTimer.current) {
                         clearTimeout(debounceTimer.current);
                     }
 
+                    // Capture path at this moment to avoid stale closure
+                    const currentPath = activeNote.path;
+
                     debounceTimer.current = window.setTimeout(() => {
-                        renameItem(activeNote.path, newName);
-                    }, 300); // Slightly longer debounce to avoid conflicts with autosave
+                        // Only rename if we're still viewing the same note
+                        // This prevents renaming wrong files when switching notes
+                        renameItem(currentPath, newName).catch(console.error);
+                    }, 500); // Longer debounce to let user finish typing
                 }
             }
         }

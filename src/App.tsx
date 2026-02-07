@@ -138,12 +138,8 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  // Auto-save: Controlled by settings
-  useAutosave(
-    autosaveSettings.enabled ? saveActiveNote : () => { },
-    autosaveSettings.interval,
-    autosaveSettings.enabled && isDirty
-  );
+  // Auto-save: Controlled by settings - only runs when enabled AND dirty
+  useAutosave(saveActiveNote, autosaveSettings.interval, autosaveSettings.enabled && isDirty);
 
   // Handler for autosave settings change
   const handleAutosaveChange = (settings: AutosaveSettings) => {
