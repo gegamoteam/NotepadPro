@@ -255,20 +255,21 @@ export default function Sidebar({
             )}
 
             {!isCollapsed && (
-                <div className="sidebar-search">
+                <div className="sidebar-search" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <input
                         type="text"
                         placeholder="Filter..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        style={{ flex: 1 }}
                     />
-                    <button onClick={onCreateNote} title="New Note" style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: '6px', display: 'flex', alignItems: 'center' }}>
+                    <button onClick={onCreateNote} title="New Note" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Plus size={16} color="var(--text-color)" />
                     </button>
-                    <button onClick={onAdvancedSearch} title="Advanced Search (In Files)" style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: '6px' }}>
+                    <button onClick={onAdvancedSearch} title="Advanced Search (In Files)" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Search size={16} color="var(--text-color)" />
                     </button>
-                    <button onClick={toggleSort} title="Toggle Sort" style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
+                    <button onClick={toggleSort} title="Toggle Sort" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <ArrowUpDown size={16} color="var(--text-color)" />
                     </button>
                 </div>
