@@ -1,0 +1,105 @@
+.menubar {
+    display: flex;
+    background-color: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    height: 30px;
+    /* Standard menu height */
+    align-items: center;
+    padding-left: 2px;
+    font-size: 12px;
+    font-family: "Segoe UI", sans-serif;
+    user-select: none;
+}
+
+.menu-item {
+    position: relative;
+}
+
+.menu-label {
+    padding: 2px 8px;
+    cursor: default;
+    color: #333;
+}
+
+.menu-item:hover .menu-label,
+.menu-item.active .menu-label {
+    background-color: #e5f3ff;
+    color: #000;
+}
+
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #f2f2f2;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 2000;
+    min-width: 220px;
+    padding: 2px 0;
+}
+
+.dropdown-item {
+    display: flex;
+    padding: 5px 20px 5px 30px;
+    /* Space for checkmark */
+    cursor: default;
+    color: #000;
+    position: relative;
+    font-size: 12px;
+    align-items: center;
+}
+
+.dropdown-item:hover {
+    background-color: #91c9f7;
+}
+
+.dropdown-item.disabled {
+    color: #a0a0a0;
+}
+
+.dropdown-item.disabled:hover {
+    background-color: transparent;
+}
+
+.check-placeholder {
+    position: absolute;
+    left: 10px;
+    width: 15px;
+    text-align: center;
+}
+
+.shortcut {
+    margin-left: auto;
+    padding-left: 15px;
+    color: #666;
+}
+
+.separator {
+    height: 1px;
+    background-color: #d9d9d9;
+    margin: 3px 10px;
+}
+
+/* Submenu logic - simple version for now */
+.has-submenu::after {
+    content: "▸";
+    position: absolute;
+    right: 10px;
+}
+
+.submenu {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: -3px;
+    /* Align with parent */
+    border: 1px solid #ccc;
+    background: #f2f2f2;
+    min-width: 200px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-item:hover .submenu {
+    display: block;
+}

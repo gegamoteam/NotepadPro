@@ -1,0 +1,13 @@
+.resizer {
+    width: 5px;
+    background: transparent;
+    cursor: col-resize;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    z-index: 10;
+}
+
+.resizer:hover,
+.resizer.resizing {
+    background: var(--accent-color);
+}

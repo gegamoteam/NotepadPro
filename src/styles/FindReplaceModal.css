@@ -1,0 +1,47 @@
+.find-modal {
+    position: absolute;
+    top: 40px;
+    right: 20px;
+    width: 300px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 15px;
+    z-index: 100;
+    font-family: var(--font-ui);
+    font-size: 13px;
+}
+
+.find-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.find-row label {
+    width: 60px;
+}
+
+.find-row input {
+    flex: 1;
+    padding: 4px;
+    border: 1px solid #ccc;
+}
+
+.find-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.find-actions button {
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+    cursor: pointer;
+}
+
+.find-actions button:hover {
+    background: #e9e9e9;
+}

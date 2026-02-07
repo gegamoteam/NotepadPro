@@ -1,0 +1,25 @@
+.context-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    min-width: 150px;
+    padding: 4px 0;
+    font-family: "Segoe UI", sans-serif;
+    font-size: 13px;
+}
+
+.context-menu-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    color: #333;
+}
+
+.context-menu-item:hover {
+    background-color: #f0f0f0;
+}
+
+.context-menu-item.danger {
+    color: #d00;
+}

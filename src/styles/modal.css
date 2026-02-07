@@ -1,0 +1,81 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    min-width: 300px;
+    font-family: 'Segoe UI', sans-serif;
+    border: 1px solid #ccc;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.close-btn {
+    border: none;
+    background: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    /* Important for padding */
+}
+
+.modal-input:focus {
+    outline: none;
+    border-color: #0078d7;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-footer button {
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+    background: #f0f0f0;
+}
+
+.modal-footer .btn-ok {
+    background: #0078d7;
+    color: white;
+    border-color: #0078d7;
+}
+
+.modal-footer button:hover {
+    filter: brightness(0.95);
+}

@@ -1,0 +1,30 @@
+.editor-container {
+    flex: 1;
+    display: flex;
+    position: relative;
+    background-color: #fff;
+}
+
+.editor-textarea {
+    width: 100%;
+    height: 100%;
+    resize: none;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    font-family: var(--font-mono);
+    padding: 10px 24px;
+    /* Added padding */
+    line-height: 1.5;
+}
+
+.editor-textarea.no-wrap {
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.editor-textarea.wrap {
+    white-space: pre-wrap;
+    overflow-x: hidden;
+}

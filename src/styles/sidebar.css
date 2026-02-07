@@ -1,0 +1,186 @@
+.sidebar {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: #f0f0f0;
+    /* Native-like gray */
+    border-right: 1px solid #d9d9d9;
+    font-size: 13px;
+    /* Standard UI font size */
+    font-family: "Segoe UI", sans-serif;
+    user-select: none;
+}
+
+.sidebar-nav-item {
+    padding: 8px 12px;
+    font-weight: 600;
+    color: #444;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.sidebar-nav-item:hover {
+    background: #e5f3ff;
+}
+
+.sidebar-search {
+    padding: 8px;
+    border-bottom: 1px solid #e5e5e5;
+    background: #fff;
+    display: flex;
+    align-items: center;
+}
+
+.search-label {
+    display: none;
+    /* Clean look, use placeholder */
+}
+
+.sidebar-search input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #dcdcdc;
+    background: #fff;
+    color: #000;
+    font-family: "Segoe UI", sans-serif;
+    font-size: 13px;
+    outline: none;
+}
+
+.sidebar-search input:focus {
+    border-color: #0078d4;
+    /* Windows accent blue */
+    background: #fff;
+}
+
+.sidebar-search input::placeholder {
+    color: #666;
+}
+
+.sidebar-section {
+    padding: 0;
+    margin-top: 5px;
+}
+
+/* Hide empty headers to reduce clutter if preferred, or make them very subtle */
+.sidebar-header {
+    padding: 8px 12px 4px 12px;
+    font-weight: 600;
+    color: #5c5c5c;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-empty {
+    padding: 4px 12px;
+    color: #888;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.folder-tree {
+    padding-bottom: 10px;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 12px 4px 8px;
+    /* Indent slightly */
+    cursor: default;
+    color: #000;
+    height: 24px;
+}
+
+.sidebar-item:hover {
+    background-color: #e5f3ff;
+    /* Windows hover blue */
+}
+
+.sidebar-item.selected {
+    background-color: #cce8ff;
+    /* Windows selection blue */
+    color: #000;
+}
+
+.sidebar-icon {
+    margin-right: 6px;
+    color: #555;
+    font-size: 12px;
+    width: 16px;
+    text-align: center;
+    display: inline-block;
+}
+
+.sidebar-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-item.drag-over {
+    background-color: #cce8ff;
+    outline: 2px dashed #0078d4;
+    outline-offset: -2px;
+}
+
+/* Rich Sidebar Item Styles */
+.rich-sidebar-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    cursor: default;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+.rich-sidebar-item:hover {
+    background: #eef;
+}
+
+.rich-sidebar-item.selected {
+    background: #0078d7;
+    color: white;
+}
+
+.rich-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.rich-item-title {
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rich-item-date {
+    font-size: 10px;
+    color: #888;
+    margin-top: 2px;
+}
+
+.rich-sidebar-item.selected .rich-item-date {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.rich-item-preview {
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    height: 16px;
+}
+
+.rich-sidebar-item.selected .rich-item-preview {
+    color: rgba(255, 255, 255, 0.9);
+}
