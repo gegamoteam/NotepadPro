@@ -220,7 +220,7 @@ export function useNotes(rootPath: string) {
                             // But title update only happens when WRITING to activeNote.
                             // Safety check:
                             renameItem(activeNote.path, newName);
-                        }, 1000); // 1 second debounce
+                        }, 100); // 100ms debounce for near-instant feel
                     }
                 }
             }
