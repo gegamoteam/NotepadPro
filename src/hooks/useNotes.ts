@@ -174,59 +174,27 @@ export function useNotes(rootPath: string) {
         setActiveNoteContent(content);
         setIsDirty(true);
 
-        if (!activeNote) {
-            // Auto-create logic (Draft) - only create after meaningful content
-            // Require at least 5 characters to avoid accidental file creation
-            try {
-                const trimmedContent = content.trim();
-                if (trimmedContent.length >= 5) {
-                    let name = `Untitled-${Date.now()}.txt`;
-                    const firstLine = content.split('\n')[0].trim().replace(/[\\/:*?"<>|]/g, "");
-                    if (firstLine.length >= 3 && firstLine.length < 30) {
-                        name = `${firstLine}.txt`;
+        // Only update title for existing .txt files
+        // No auto-create - files must be created explicitly via + button
+        if (activeNote && activeNote.name.endsWith(".txt")) {
+            const firstLine = content.split('\n')[0].trim().replace(/[\\/:*?"<>|]/g, "");
+
+            // Only rename if first line has meaningful content (at least 3 chars)
+            if (firstLine.length >= 3 && firstLine.length < 50) {
+                const newName = `${firstLine}.txt`;
+
+                if (newName !== activeNote.name) {
+                    if (debounceTimer.current) {
+                        clearTimeout(debounceTimer.current);
                     }
 
-                    const path = `${rootPath}\\${name}`;
-                    await filesystem.writeNote(path, content);
-                    await refreshNotes();
-                    setActiveNote({
-                        name,
-                        path,
-                        isFolder: false,
-                        lastModified: Date.now()
-                    });
-                    setIsSaving(false);
+                    debounceTimer.current = window.setTimeout(() => {
+                        renameItem(activeNote.path, newName);
+                    }, 300); // Slightly longer debounce to avoid conflicts with autosave
                 }
-            } catch (e) {
-                console.error("Failed to auto-create draft note:", e);
-            }
-        } else {
-            // Continuous Title Update for .txt files
-            // Only rename if:
-            // 1. File is a .txt
-            // 2. First line has reasonable content (at least 3 chars)
-            // 3. First line is different from current name
-            if (activeNote.name.endsWith(".txt")) {
-                const firstLine = content.split('\n')[0].trim().replace(/[\\/:*?"<>|]/g, "");
-
-                // Only rename if first line has meaningful content
-                if (firstLine.length >= 3 && firstLine.length < 50) {
-                    const newName = `${firstLine}.txt`;
-
-                    if (newName !== activeNote.name) {
-                        if (debounceTimer.current) {
-                            clearTimeout(debounceTimer.current);
-                        }
-
-                        debounceTimer.current = window.setTimeout(() => {
-                            renameItem(activeNote.path, newName);
-                        }, 100);
-                    }
-                }
-                // If first line is empty or too short, keep the existing name - don't rename
             }
         }
-    }, [activeNote, rootPath, refreshNotes, renameItem]);
+    }, [activeNote, renameItem]);
 
     // Create new note
     const createNote = useCallback(async (_parentPath: string | undefined, name: string) => {
