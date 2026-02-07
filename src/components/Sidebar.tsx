@@ -15,6 +15,7 @@ interface SidebarProps {
 
     // Actions
     onCreateNote: () => void;
+    onCreateNoteWithName?: (filename: string) => void;
     onDelete: (path: string, permanent: boolean) => void; // Updated signature
     onRename: (path: string, newName: string) => void;
     onAdvancedSearch?: () => void; // New prop
@@ -35,6 +36,7 @@ export default function Sidebar({
     onOpenNote,
     activeNotePath,
     onCreateNote,
+    onCreateNoteWithName,
     onDelete,
     onRename,
     onAdvancedSearch,
@@ -46,6 +48,7 @@ export default function Sidebar({
 }: SidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item?: Note, items?: string[] } | null>(null);
+    const [newFileModal, setNewFileModal] = useState(false);
     const [modal, setModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -182,6 +185,21 @@ export default function Sidebar({
                 onSubmit={modal.onSubmit}
             />
 
+            {/* Custom File Creation Modal */}
+            <InputModal
+                isOpen={newFileModal}
+                title="Create New File"
+                initialValue="New File.txt"
+                maxLength={100}
+                onClose={() => setNewFileModal(false)}
+                onSubmit={(filename) => {
+                    if (filename.trim() && onCreateNoteWithName) {
+                        onCreateNoteWithName(filename.trim());
+                    }
+                    setNewFileModal(false);
+                }}
+            />
+
             {/* Custom Delete Modal */}
             {deleteModal.isOpen && (
                 <div style={{
@@ -263,7 +281,16 @@ export default function Sidebar({
                         onChange={(e) => setSearchQuery(e.target.value)}
                         style={{ flex: 1 }}
                     />
-                    <button onClick={onCreateNote} title="New Note" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button
+                        onClick={onCreateNote}
+                        onContextMenu={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setNewFileModal(true);
+                        }}
+                        title="New Note (Right-click for custom extension)"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
                         <Plus size={16} color="var(--text-color)" />
                     </button>
                     <button onClick={onAdvancedSearch} title="Advanced Search (In Files)" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

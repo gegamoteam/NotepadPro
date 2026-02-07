@@ -119,8 +119,16 @@ function App() {
 
   const createNewNote = async () => {
     try {
-      const path = await _createNote(undefined, "New Note.txt"); // Changed from "" to undefined
+      const path = await _createNote(undefined, "New Note.txt");
       const name = path.split('\\').pop() || "New Note.txt";
+      openNote({ path, name, isFolder: false, lastModified: Date.now() });
+    } catch (e) { console.error(e); }
+  };
+
+  const createNoteWithName = async (filename: string) => {
+    try {
+      const path = await _createNote(undefined, filename);
+      const name = path.split('\\').pop() || filename;
       openNote({ path, name, isFolder: false, lastModified: Date.now() });
     } catch (e) { console.error(e); }
   };
@@ -237,6 +245,7 @@ function App() {
             activeNotePath={activeNote?.path}
             onOpenNote={openNote}
             onCreateNote={createNewNote}
+            onCreateNoteWithName={createNoteWithName}
             onDelete={deleteItem}
             onRename={renameItem}
             pinnedPaths={pinnedPaths}
