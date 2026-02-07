@@ -1,14 +1,13 @@
 import React from 'react';
 import { Note } from '../types/note';
-import { FileText, Pin } from 'lucide-react'; // Added Pin
+import { FileText, FileCode, Pin } from 'lucide-react';
 
 interface RichItemProps {
     item: Note;
     isSelected: boolean;
-    isPinned?: boolean; // New prop
+    isPinned?: boolean;
     onClick: (e: React.MouseEvent) => void;
     onContextMenu: (e: React.MouseEvent) => void;
-    // Drag props removed
     onDragStart: (e: React.DragEvent) => void;
     onDragOver: (e: React.DragEvent) => void;
     onDragLeave: (e: React.DragEvent) => void;
@@ -16,13 +15,20 @@ interface RichItemProps {
     isCollapsed?: boolean;
 }
 
+// Helper to get icon based on file extension
+const getFileIcon = (filename: string, size: number) => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    if (ext === 'md' || ext === 'markdown') {
+        return <FileCode size={size} color="currentColor" />;
+    }
+    return <FileText size={size} color="currentColor" />;
+};
+
 export const RichItem: React.FC<RichItemProps> = ({
     item, isSelected, isPinned, onClick, onContextMenu,
-    // Consume unused props to satisfy interface but ignoring them
     onDragStart: _start, onDragOver: _over, onDragLeave: _leave, onDrop: _drop,
     isCollapsed
 }) => {
-    // Format date
     const dateStr = new Date(item.lastModified || 0).toLocaleDateString();
 
     if (isCollapsed) {
@@ -31,12 +37,12 @@ export const RichItem: React.FC<RichItemProps> = ({
                 className={`rich-sidebar-item ${isSelected ? 'selected' : ''}`}
                 onClick={onClick}
                 onContextMenu={onContextMenu}
-                title={item.name} // Tooltip
+                title={item.name}
                 style={{ justifyContent: 'center', padding: '12px 0' }}
             >
-                <div className="rich-item-icon" style={{ position: 'relative', margin: 0 }}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {isPinned && <Pin size={10} style={{ position: 'absolute', top: -4, right: -4, fill: 'currentColor' }} />}
-                    <FileText size={20} color="currentColor" />
+                    {getFileIcon(item.name, 20)}
                 </div>
             </div>
         );
@@ -47,18 +53,18 @@ export const RichItem: React.FC<RichItemProps> = ({
             className={`rich-sidebar-item ${isSelected ? 'selected' : ''}`}
             onClick={onClick}
             onContextMenu={onContextMenu}
-            style={{ paddingLeft: '16px', paddingRight: '8px' }} // Keep the padding fix
+            style={{ paddingLeft: '16px', paddingRight: '8px' }}
         >
-            <div className="rich-item-icon">
-                <FileText size={18} color="currentColor" />
-            </div>
-            <div className="rich-item-content">
-                <div className="rich-item-title" style={{ maxWidth: '180px', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
-                    {isPinned && <Pin size={12} style={{ marginLeft: '6px', opacity: 0.7, flexShrink: 0 }} />}
+            <div className="rich-item-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '13px', flex: 1 }}>
+                    {item.name}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                    {isPinned && <Pin size={12} style={{ opacity: 0.7 }} />}
+                    {getFileIcon(item.name, 14)}
                 </div>
-                <div className="rich-item-date">{dateStr}</div>
             </div>
+            <div className="rich-item-date">{dateStr}</div>
         </div>
     );
 };
