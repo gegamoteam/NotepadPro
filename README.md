@@ -11,7 +11,7 @@
 <p align="center">
   A lightweight, performance-first desktop note-taking application built with Tauri V2, React, and TypeScript.
 </p>
-
+WARNING!!, Currently i didnt implement adding to PATH on the installer, you will have to add it manually via enviroment variables. i will add it soon
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#installation">Installation</a> •
