@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/icon.png" alt="NoteX Logo" width="80">
+  <img src="https://deeqwntbjl.ufs.sh/f/QTnWo1gvRKxTtnZ45SFFJDW2CqHlc70ZVKQ9iwMXdvrIEbPx" alt="NoteX Logo" width="80">
 </p>
 
 <h1 align="center">NoteX</h1>
