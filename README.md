@@ -66,8 +66,8 @@ Make sure you have the following installed:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/notex.git
-cd notex
+git clone https://github.com/gegamoteam/NotepadPro.git
+cd NotepadPro
 
 # Install dependencies
 npm install
@@ -187,5 +187,9 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ---
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/yourusername">Theo</a>
+  Made with ❤️ by the <a href="https://gegamo.xyz">Gegamo Team</a>
+</p>
+
+<p align="center">
+  <a href="https://gegamo.xyz">gegamo.xyz</a> • <a href="https://github.com/gegamoteam/NotepadPro">GitHub</a>
 </p>

@@ -123,7 +123,7 @@ export function useNotes(rootPath: string) {
             // Start watcher
             filesystem.watchDir(rootPath).catch(e => console.error("Watcher failed:", e));
 
-            const unlisten = listen('file-changed', (event) => {
+            const unlisten = listen('file-changed', (_event) => {
                 // Debounce refresh
                 if (refreshTimer.current) {
                     clearTimeout(refreshTimer.current);
@@ -138,7 +138,7 @@ export function useNotes(rootPath: string) {
             };
         }
     }, [rootPath, refreshNotes]);
-    
+
     useEffect(() => {
         if (rootPath) {
             refreshNotes();
