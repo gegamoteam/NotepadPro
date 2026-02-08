@@ -19,6 +19,10 @@ export const filesystem = {
         return await invoke("write_note", { path, content });
     },
 
+    writeBinary: async (path: string, data: Uint8Array): Promise<boolean> => {
+        return await invoke("write_binary", { path, data: Array.from(data) });
+    },
+
     listNotes: async (dir: string): Promise<Note[]> => {
         const entries = await invoke<FileEntry[]>("list_notes", { dir });
         return entries.map((entry) => ({
@@ -55,6 +59,10 @@ export const filesystem = {
             console.error("Failed to open file in explorer, trying fallback", e);
             // Fallback to invoke if needed, or log error
         }
+    },
+
+    watchDir: async (path: string): Promise<void> => {
+        return await invoke("watch_dir", { path });
     },
 
     searchNotes: async (dir: string, query: string): Promise<SearchResult[]> => {

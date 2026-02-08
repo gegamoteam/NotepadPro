@@ -1,6 +1,17 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::time::SystemTime;
+use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+use std::sync::Mutex;
+use tauri::{AppHandle, Emitter, State};
+
+struct WatcherState(Mutex<Option<RecommendedWatcher>>);
+
+#[derive(Serialize, Deserialize, Clone)]
+struct WatchEvent {
+    kind: String,
+    paths: Vec<String>,
+}
 
 #[derive(Serialize, Deserialize)]
 struct FileEntry {
@@ -11,6 +22,37 @@ struct FileEntry {
 }
 
 #[tauri::command]
+fn watch_dir(app: AppHandle, state: State<'_, WatcherState>, path: String) -> Result<(), String> {
+    let mut watcher_guard = state.0.lock().map_err(|e| e.to_string())?;
+    
+    // Stop previous watcher if any (by dropping it)
+    *watcher_guard = None;
+
+    let app_handle = app.clone();
+    let mut watcher = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+        match res {
+            Ok(event) => {
+                let payload = WatchEvent {
+                    kind: format!("{:?}", event.kind),
+                    paths: event
+                        .paths
+                        .iter()
+                        .map(|p| p.to_string_lossy().into_owned())
+                        .collect(),
+                };
+                let _ = app_handle.emit("file-changed", payload);
+            }
+            Err(e) => println!("watch error: {:?}", e),
+        }
+    }).map_err(|e| e.to_string())?;
+
+    watcher.watch(std::path::Path::new(&path), RecursiveMode::Recursive).map_err(|e| e.to_string())?;
+
+    *watcher_guard = Some(watcher);
+    Ok(())
+}
+
+#[tauri::command]
 fn read_note(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| e.to_string())
 }
@@ -18,6 +60,12 @@ fn read_note(path: String) -> Result<String, String> {
 #[tauri::command]
 fn write_note(path: String, content: String) -> Result<bool, String> {
     fs::write(&path, content).map_err(|e| e.to_string())?;
+    Ok(true)
+}
+
+#[tauri::command]
+fn write_binary(path: String, data: Vec<u8>) -> Result<bool, String> {
+    fs::write(&path, data).map_err(|e| e.to_string())?;
     Ok(true)
 }
 
@@ -169,6 +217,7 @@ use tauri::{
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(WatcherState(Mutex::new(None)))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             let _ = app.get_webview_window("main").expect("no main window").show();
@@ -222,11 +271,13 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             read_note,
             write_note,
+            write_binary,
             list_notes,
             create_folder,
             rename_item,
             delete_item,
-            search_notes
+            search_notes,
+            watch_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -34,7 +34,7 @@ export const RichItem: React.FC<RichItemProps> = ({
     if (isCollapsed) {
         return (
             <div
-                className={`rich-sidebar-item ${isSelected ? 'selected' : ''}`}
+                className={`rich-sidebar-item ${isSelected ? 'selected' : ''} ${item.isNew ? 'newly-added' : ''}`}
                 onClick={onClick}
                 onContextMenu={onContextMenu}
                 title={item.name}
@@ -50,7 +50,7 @@ export const RichItem: React.FC<RichItemProps> = ({
 
     return (
         <div
-            className={`rich-sidebar-item ${isSelected ? 'selected' : ''}`}
+            className={`rich-sidebar-item ${isSelected ? 'selected' : ''} ${item.isNew ? 'newly-added' : ''}`}
             onClick={onClick}
             onContextMenu={onContextMenu}
             style={{ paddingLeft: '16px', paddingRight: '8px' }}

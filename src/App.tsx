@@ -122,19 +122,61 @@ function App() {
     setSortBy
   } = useNotes(rootPath);
 
+  const normalizeFilename = (filename: string, fallbackExtension: string) => {
+    const trimmed = filename.trim();
+    if (!trimmed) return "";
+    const lastDot = trimmed.lastIndexOf(".");
+    if (lastDot <= 0 || lastDot === trimmed.length - 1) {
+      return `${trimmed}.${fallbackExtension}`;
+    }
+    return trimmed;
+  };
+
+  const ensureUniqueFilename = (filename: string) => {
+    const existing = new Set(fileSystemRoot.map(note => note.name.toLowerCase()));
+    if (!existing.has(filename.toLowerCase())) return filename;
+    const dotIndex = filename.lastIndexOf(".");
+    const base = dotIndex > 0 ? filename.slice(0, dotIndex) : filename;
+    const ext = dotIndex > 0 ? filename.slice(dotIndex) : "";
+    let counter = 2;
+    let candidate = `${base} (${counter})${ext}`;
+    while (existing.has(candidate.toLowerCase())) {
+      counter += 1;
+      candidate = `${base} (${counter})${ext}`;
+    }
+    return candidate;
+  };
+
   const createNewNote = async () => {
     try {
-      const path = await _createNote(undefined, "New Note.txt");
+      setSortBy("modified");
+      const filename = ensureUniqueFilename("New Note.txt");
+      const path = await _createNote(undefined, filename);
       const name = path.split('\\').pop() || "New Note.txt";
-      openNote({ path, name, isFolder: false, lastModified: Date.now() });
+      await openNote({ path, name, isFolder: false, lastModified: Date.now() });
     } catch (e) { console.error(e); }
   };
 
   const createNoteWithName = async (filename: string) => {
     try {
+      const normalized = normalizeFilename(filename, "txt");
+      if (!normalized) return;
+      setSortBy("modified");
+      const uniqueName = ensureUniqueFilename(normalized);
+      const path = await _createNote(undefined, uniqueName);
+      const name = path.split('\\').pop() || uniqueName;
+      await openNote({ path, name, isFolder: false, lastModified: Date.now() });
+    } catch (e) { console.error(e); }
+  };
+
+  const createNoteWithExtension = async (extension: "txt" | "md") => {
+    try {
+      setSortBy("modified");
+      const baseName = `New Note.${extension}`;
+      const filename = ensureUniqueFilename(baseName);
       const path = await _createNote(undefined, filename);
       const name = path.split('\\').pop() || filename;
-      openNote({ path, name, isFolder: false, lastModified: Date.now() });
+      await openNote({ path, name, isFolder: false, lastModified: Date.now() });
     } catch (e) { console.error(e); }
   };
 
@@ -259,6 +301,7 @@ function App() {
             onOpenNote={openNote}
             onCreateNote={createNewNote}
             onCreateNoteWithName={createNoteWithName}
+            onCreateNoteWithExtension={createNoteWithExtension}
             onDelete={deleteItem}
             onRename={renameItem}
             pinnedPaths={pinnedPaths}
@@ -310,6 +353,8 @@ function App() {
             wordWrap={wordWrap}
             onCursorChange={(line, col) => setCursor({ line, col })}
             fontSize={zoom}
+            filePath={activeNote?.path}
+            rootPath={rootPath}
           />
           {showStatusBar && (
             <StatusBar

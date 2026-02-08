@@ -1,62 +1,191 @@
-# NoteX — Notepad, but smarter
+<p align="center">
+  <img src="public/icon.png" alt="NoteX Logo" width="80">
+</p>
 
-NoteX is a lightweight, performance-first desktop note-taking application built with Tauri V2, React, and TypeScript. It mimics the native Windows Notepad experience while adding essential modern features like auto-save, folder organization, and instant search.
+<h1 align="center">NoteX</h1>
 
-> “Notepad, but with memory, structure, and search — without losing simplicity.”
+<p align="center">
+  <strong>Notepad, but smarter.</strong>
+</p>
 
-## Features
+<p align="center">
+  A lightweight, performance-first desktop note-taking application built with Tauri V2, React, and TypeScript.
+</p>
 
-- **Native Feel**: Minimalist UI, identical to Notepad behavior.
-- **Auto-Save**: Never lose work again. Autosaves every 2 seconds and on exit.
-- **Organization**: Real file-system based folder structure (`~/Documents/NoteX`).
-- **Search**: Full-text search across all notes.
-- **Performance**: Instant startup (<500ms), low memory footprint.
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#usage">Usage</a> •
+  <a href="#keyboard-shortcuts">Shortcuts</a> •
+  <a href="#contributing">Contributing</a> •
+  <a href="#license">License</a>
+</p>
 
-## Prerequisites
+<p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/tauri-v2-orange.svg" alt="Tauri V2">
+  <img src="https://img.shields.io/badge/react-19-61dafb.svg" alt="React 19">
+</p>
 
-Before running the project, ensure you have:
+---
 
-- **Rust**: [Install Rust](https://www.rust-lang.org/tools/install)
-- **Node.js**: [Install Node.js (LTS)](https://nodejs.org/)
-- **Tauri CLI**: (Optional, installed via npm)
+## ✨ Features
 
-## Installation & Running
+| Feature | Description |
+|---------|-------------|
+| 🎨 **Native Feel** | Minimalist UI that feels right at home on Windows |
+| 💾 **Auto-Save** | Never lose work — saves every 2 seconds and on exit |
+| 📁 **File Organization** | Real file-system based folders (`~/Documents/NoteX`) |
+| 🔍 **Full-Text Search** | Instantly search across all your notes |
+| 📝 **Markdown Support** | Preview mode with syntax-highlighted code blocks |
+| 🖼️ **Embedded Media** | Render local images directly in Markdown notes |
+| ⚡ **Fast Startup** | Opens in under 500ms with minimal memory usage |
+| 🔧 **Settings** | Configurable autosave interval and preferences |
+| 🌙 **Modern UI** | Clean, distraction-free writing experience |
 
-1.  **Clone the repository** (if applicable) or navigate to the project folder.
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
-3.  **Run in Development Mode**:
-    ```bash
-    npm run tauri dev
-    ```
-    This will start the Vite server and launch the Tauri window.
+---
 
-## Building for Production
+## 📸 Screenshots
 
-To create an optimized executable (`.exe` or `.msi`):
+<!-- Add screenshots of your app here -->
+<!-- ![NoteX Screenshot](screenshots/main.png) -->
+
+---
+
+## 🚀 Installation
+
+### Prerequisites
+
+Make sure you have the following installed:
+
+- **[Rust](https://www.rust-lang.org/tools/install)** — Required for the Tauri backend
+- **[Node.js](https://nodejs.org/)** (LTS recommended) — For the frontend build system
+
+### Clone & Install
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/notex.git
+cd notex
+
+# Install dependencies
+npm install
+```
+
+### Run in Development Mode
+
+```bash
+npm run tauri dev
+```
+
+This starts the Vite dev server and launches the Tauri window with hot-reload enabled.
+
+### Build for Production
 
 ```bash
 npm run tauri build
 ```
 
-The output will be located in `src-tauri/target/release/bundle/`.
+The compiled executable (`.exe` / `.msi`) will be in `src-tauri/target/release/bundle/`.
 
-## Architecture
+---
 
-- **Backend**: Rust (Tauri V2) - Handles all file system operations safely.
-- **Frontend**: React + TypeScript - Optimized for speed, no heavy UI frameworks.
-- **Storage**: Plain `.txt` files in `Documents/NoteX`. No proprietary formats.
+## 💻 Usage
 
-## Key Shortcuts
+1. **Launch NoteX** — Double-click the executable or run from the command line
+2. **Create Notes** — Use the sidebar or press `Ctrl + N`
+3. **Organize** — Create folders to group related notes
+4. **Search** — Use the search bar to find notes instantly
+5. **Markdown** — Write in Markdown and toggle preview mode
+
+All notes are stored as plain `.txt` or `.md` files in your `Documents/NoteX` folder — no proprietary formats, full data ownership.
+
+---
+
+## ⌨️ Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| Ctrl + N | New Note |
-| Ctrl + S | Save Note (Manual) |
-| Ctrl + W | Close Note |
+| `Ctrl + N` | New Note |
+| `Ctrl + S` | Save Note (Manual) |
+| `Ctrl + W` | Close Note |
+| `Ctrl + F` | Find & Replace |
+| `Ctrl + ,` | Open Settings |
 
-## License
+---
 
-MIT
+## 🏗️ Architecture
+
+```
+notex/
+├── src/                 # React frontend
+│   ├── components/      # UI components (Editor, Sidebar, etc.)
+│   ├── hooks/           # Custom React hooks
+│   ├── services/        # File service layer
+│   └── styles/          # CSS stylesheets
+├── src-tauri/           # Rust backend
+│   ├── src/             # Tauri commands & file operations
+│   └── tauri.conf.json  # App configuration
+└── public/              # Static assets
+```
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Backend** | Rust + Tauri V2 |
+| **Frontend** | React 19 + TypeScript |
+| **Bundler** | Vite |
+| **Styling** | Vanilla CSS |
+| **Icons** | Lucide React |
+| **Markdown** | markdown-it + highlight.js |
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how you can help:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Development Guidelines
+
+- Follow the existing code style
+- Write meaningful commit messages
+- Test your changes before submitting
+- Update documentation as needed
+
+---
+
+## 📝 Roadmap
+
+- [ ] Multi-tab support
+- [ ] Theme customization (dark/light modes)
+- [ ] Export to PDF
+- [ ] Cloud sync (optional)
+- [ ] Plugin system
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Tauri](https://tauri.app/) — For the amazing Rust-based framework
+- [React](https://react.dev/) — For the frontend library
+- [Lucide](https://lucide.dev/) — For beautiful icons
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/yourusername">Theo</a>
+</p>

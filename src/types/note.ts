@@ -5,6 +5,7 @@ export interface Note {
   lastModified?: number;
   isFolder: boolean;
   children?: Note[]; // For folder tree
+  isNew?: boolean;
 }
 
 export interface SearchResult {

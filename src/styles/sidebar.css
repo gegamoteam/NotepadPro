@@ -98,6 +98,15 @@
     /* Windows hover blue */
 }
 
+@keyframes highlightNew {
+  0% { background-color: var(--accent-color, #0078d4); color: white; }
+  100% { background-color: transparent; color: inherit; }
+}
+
+.newly-added {
+  animation: highlightNew 2s ease-out;
+}
+
 .sidebar-item.selected {
     background-color: #cce8ff;
     /* Windows selection blue */

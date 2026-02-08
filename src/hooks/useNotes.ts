@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { Note } from "../types/note";
 import { filesystem } from "../services/filesystem";
 import { settingsService } from "../services/settings";
@@ -12,40 +13,13 @@ export function useNotes(rootPath: string) {
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const debounceTimer = useRef<number | null>(null);
+    const refreshTimer = useRef<number | null>(null);
+    const knownPathsRef = useRef<Set<string>>(new Set());
+    const hasLoadedRef = useRef(false);
 
     // Sort state
     const [sortBy, setSortBy] = useState<'date' | 'name' | 'modified'>('modified');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-
-    // Initial load
-
-    // Initial load and refresh when rootPath changes
-    useEffect(() => {
-        settingsService.loadPinned().then(setPinnedPaths);
-        // Load hidden paths
-        const loadHidden = async () => {
-            const hiddenFile = `${rootPath}\\.hidden.json`;
-            try {
-                const content = await filesystem.readNote(hiddenFile);
-                setHiddenPaths(JSON.parse(content));
-            } catch {
-                // Ignore if missing
-                setHiddenPaths([]);
-            }
-        };
-        if (rootPath) loadHidden();
-    }, [rootPath]); // Reload if rootPath changes
-
-    // Save hidden paths helper
-    const saveHiddenPaths = async (paths: string[]) => {
-        const hiddenFile = `${rootPath}\\.hidden.json`;
-        try {
-            await filesystem.writeNote(hiddenFile, JSON.stringify(paths, null, 2));
-        } catch (e) {
-            console.error("Failed to save hidden paths", e);
-        }
-    };
-
 
     // Load folder structure
     const refreshNotes = useCallback(async (overrideHiddenPaths?: string[]) => {
@@ -79,6 +53,20 @@ export function useNotes(rootPath: string) {
 
             const flatFiles = flatten(entries);
 
+            // Mark new files
+            const currentKnown = knownPathsRef.current;
+            const newKnown = new Set<string>();
+            const hasLoaded = hasLoadedRef.current;
+
+            flatFiles.forEach(f => {
+                newKnown.add(f.path);
+                if (hasLoaded && !currentKnown.has(f.path)) {
+                    f.isNew = true;
+                }
+            });
+            knownPathsRef.current = newKnown;
+            hasLoadedRef.current = true;
+
             // Sort
             flatFiles.sort((a, b) => {
                 const aPinned = pinnedPaths.includes(a.path);
@@ -102,6 +90,55 @@ export function useNotes(rootPath: string) {
         }
     }, [rootPath, sortBy, sortDirection, hiddenPaths]);
 
+    // Initial load and refresh when rootPath changes
+    useEffect(() => {
+        settingsService.loadPinned().then(setPinnedPaths);
+        // Load hidden paths
+        const loadHidden = async () => {
+            const hiddenFile = `${rootPath}\\.hidden.json`;
+            try {
+                const content = await filesystem.readNote(hiddenFile);
+                setHiddenPaths(JSON.parse(content));
+            } catch {
+                // Ignore if missing
+                setHiddenPaths([]);
+            }
+        };
+        if (rootPath) loadHidden();
+    }, [rootPath]); // Reload if rootPath changes
+
+    // Save hidden paths helper
+    const saveHiddenPaths = async (paths: string[]) => {
+        const hiddenFile = `${rootPath}\\.hidden.json`;
+        try {
+            await filesystem.writeNote(hiddenFile, JSON.stringify(paths, null, 2));
+        } catch (e) {
+            console.error("Failed to save hidden paths", e);
+        }
+    };
+
+    // Watcher effect
+    useEffect(() => {
+        if (rootPath) {
+            // Start watcher
+            filesystem.watchDir(rootPath).catch(e => console.error("Watcher failed:", e));
+
+            const unlisten = listen('file-changed', (event) => {
+                // Debounce refresh
+                if (refreshTimer.current) {
+                    clearTimeout(refreshTimer.current);
+                }
+                refreshTimer.current = window.setTimeout(() => {
+                    refreshNotes();
+                }, 500);
+            });
+
+            return () => {
+                unlisten.then(f => f());
+            };
+        }
+    }, [rootPath, refreshNotes]);
+    
     useEffect(() => {
         if (rootPath) {
             refreshNotes();
@@ -211,6 +248,11 @@ export function useNotes(rootPath: string) {
     const createNote = useCallback(async (_parentPath: string | undefined, name: string) => {
         try {
             const path = `${rootPath}\\${name}`; // Windows separator
+            if (hiddenPaths.includes(path)) {
+                const updatedHidden = hiddenPaths.filter(p => p !== path);
+                setHiddenPaths(updatedHidden);
+                await saveHiddenPaths(updatedHidden);
+            }
             await filesystem.writeNote(path, "");
             await refreshNotes();
             return path;
@@ -218,7 +260,7 @@ export function useNotes(rootPath: string) {
             console.error(e);
             throw e;
         }
-    }, [rootPath, refreshNotes]);
+    }, [rootPath, refreshNotes, hiddenPaths]);
 
     const createFolder = useCallback(async (parentPath: string, name: string) => {
         try {

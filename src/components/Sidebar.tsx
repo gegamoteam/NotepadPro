@@ -16,6 +16,7 @@ interface SidebarProps {
     // Actions
     onCreateNote: () => void;
     onCreateNoteWithName?: (filename: string) => void;
+    onCreateNoteWithExtension?: (extension: "txt" | "md") => void;
     onDelete: (path: string, permanent: boolean) => void; // Updated signature
     onRename: (path: string, newName: string) => void;
     onAdvancedSearch?: () => void; // New prop
@@ -37,6 +38,7 @@ export default function Sidebar({
     activeNotePath,
     onCreateNote,
     onCreateNoteWithName,
+    onCreateNoteWithExtension,
     onDelete,
     onRename,
     onAdvancedSearch,
@@ -49,6 +51,7 @@ export default function Sidebar({
     const [searchQuery, setSearchQuery] = useState("");
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item?: Note, items?: string[] } | null>(null);
     const [newFileModal, setNewFileModal] = useState(false);
+    const [plusMenu, setPlusMenu] = useState<{ x: number; y: number } | null>(null);
     const [modal, setModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -108,6 +111,13 @@ export default function Sidebar({
             item,
             items: currentSelection.length > 0 ? currentSelection : (item ? [item.path] : [])
         });
+    };
+
+    const openPlusMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        setPlusMenu({ x: rect.left, y: rect.bottom + 4 });
     };
 
     const openRenameModal = (item: Note) => {
@@ -272,6 +282,20 @@ export default function Sidebar({
                 />
             )}
 
+            {plusMenu && (
+                <ContextMenu
+                    x={plusMenu.x}
+                    y={plusMenu.y}
+                    onClose={() => setPlusMenu(null)}
+                    items={[
+                        { label: "New TXT", action: () => onCreateNoteWithExtension?.("txt") ?? onCreateNote() },
+                        { label: "New MD", action: () => onCreateNoteWithExtension?.("md") ?? onCreateNoteWithName?.("New Note.md") },
+                        { label: "separator", action: () => { }, separator: true },
+                        { label: "Custom...", action: () => setNewFileModal(true) }
+                    ]}
+                />
+            )}
+
             {!isCollapsed && (
                 <div className="sidebar-search" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <input
@@ -282,13 +306,8 @@ export default function Sidebar({
                         style={{ flex: 1 }}
                     />
                     <button
-                        onClick={onCreateNote}
-                        onContextMenu={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setNewFileModal(true);
-                        }}
-                        title="New Note (Right-click for custom extension)"
+                        onClick={openPlusMenu}
+                        title="New Note"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
                         <Plus size={16} color="var(--text-color)" />

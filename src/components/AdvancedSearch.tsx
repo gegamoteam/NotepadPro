@@ -1,31 +1,67 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { filesystem, SearchResult } from "../services/filesystem";
+import { Note } from "../types/note";
 import "../styles/advancedsearch.css";
 
 interface AdvancedSearchProps {
     isOpen: boolean;
     onClose: () => void;
     rootPath: string;
-    onOpenNote: (note: any) => void;
+    onOpenNote: (note: Note) => void;
 }
 
 export default function AdvancedSearch({ isOpen, onClose, rootPath, onOpenNote }: AdvancedSearchProps) {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<SearchResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const requestIdRef = useRef(0);
 
-    const handleSearch = async () => {
-        if (!query.trim()) return;
-        setIsSearching(true);
-        try {
-            const res = await filesystem.searchNotes(rootPath, query);
-            setResults(res);
-        } catch (e) {
-            console.error(e);
-        } finally {
+    useEffect(() => {
+        if (!isOpen) {
+            setQuery("");
+            setResults([]);
+            setError(null);
             setIsSearching(false);
         }
-    };
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const trimmed = query.trim();
+        if (!trimmed) {
+            setResults([]);
+            setError(null);
+            setIsSearching(false);
+            return;
+        }
+
+        setIsSearching(true);
+        setError(null);
+        const requestId = requestIdRef.current + 1;
+        requestIdRef.current = requestId;
+
+        const timeoutId = window.setTimeout(async () => {
+            try {
+                const res = await filesystem.searchNotes(rootPath, trimmed);
+                if (requestIdRef.current !== requestId) return;
+                setResults(res);
+            } catch (e) {
+                if (requestIdRef.current !== requestId) return;
+                setResults([]);
+                setError("Search failed. Please try again.");
+                console.error("Advanced search failed", e);
+            } finally {
+                if (requestIdRef.current === requestId) {
+                    setIsSearching(false);
+                }
+            }
+        }, 200);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [query, rootPath, isOpen]);
 
     if (!isOpen) return null;
 
@@ -41,15 +77,17 @@ export default function AdvancedSearch({ isOpen, onClose, rootPath, onOpenNote }
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                         placeholder="Search for text in files..."
                         autoFocus
                     />
-                    <button onClick={handleSearch} disabled={isSearching}>
-                        {isSearching ? "Searching..." : "Search"}
-                    </button>
                 </div>
                 <div className="advanced-search-results">
+                    {isSearching && (
+                        <div className="search-status">Searching...</div>
+                    )}
+                    {error && (
+                        <div className="search-error">{error}</div>
+                    )}
                     {results.map((res, i) => (
                         <div key={i} className="search-result-item" onClick={() => {
                             onOpenNote(res.file);
