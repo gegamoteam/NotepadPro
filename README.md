@@ -50,6 +50,7 @@ WARNING!!, Currently i didnt implement adding to PATH on the installer, you will
 
 <!-- Add screenshots of your app here -->
 <!-- ![NoteX Screenshot](screenshots/main.png) -->
+<img width="999" height="581" alt="image" src="https://github.com/user-attachments/assets/740d7870-33ce-428b-8ea2-36ba7da86e6f" />
 
 ---
 
