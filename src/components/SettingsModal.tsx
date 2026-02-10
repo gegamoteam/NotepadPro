@@ -1,6 +1,7 @@
+import { useState, useEffect, useCallback } from "react";
 import "../styles/modal.css";
 import { filesystem } from "../services/filesystem";
-import { AutosaveSettings } from "../services/settings";
+import { AutosaveSettings, ShortcutSettings } from "../services/settings";
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -11,12 +12,61 @@ interface SettingsModalProps {
     onChangeRootPath: () => void;
     autosaveSettings: AutosaveSettings;
     onAutosaveChange: (settings: AutosaveSettings) => void;
+    shortcutSettings: ShortcutSettings;
+    onShortcutChange: (settings: ShortcutSettings) => void;
 }
 
 export default function SettingsModal({
     isOpen, onClose, theme, onThemeChange, rootPath, onChangeRootPath,
-    autosaveSettings, onAutosaveChange
+    autosaveSettings, onAutosaveChange,
+    shortcutSettings, onShortcutChange
 }: SettingsModalProps) {
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
+
+    // Reset recording state when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setIsRecording(false);
+            setRecordedKeys([]);
+        }
+    }, [isOpen]);
+
+    const handleRecordKeyDown = useCallback((e: KeyboardEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const modifiers: string[] = [];
+        if (e.ctrlKey) modifiers.push("Ctrl");
+        if (e.shiftKey) modifiers.push("Shift");
+        if (e.altKey) modifiers.push("Alt");
+
+        const key = e.key;
+        // Ignore standalone modifier keys
+        if (["Control", "Shift", "Alt", "Meta"].includes(key)) {
+            setRecordedKeys(modifiers);
+            return;
+        }
+
+        const keyName = key.length === 1 ? key.toUpperCase() : key;
+        const combo = [...modifiers, keyName];
+        setRecordedKeys(combo);
+
+        // Require at least one modifier + a key
+        if (modifiers.length > 0) {
+            const shortcutStr = combo.join("+");
+            onShortcutChange({ ...shortcutSettings, shortcut: shortcutStr, enabled: true });
+            setIsRecording(false);
+        }
+    }, [shortcutSettings, onShortcutChange]);
+
+    useEffect(() => {
+        if (isRecording) {
+            window.addEventListener("keydown", handleRecordKeyDown, true);
+            return () => window.removeEventListener("keydown", handleRecordKeyDown, true);
+        }
+    }, [isRecording, handleRecordKeyDown]);
+
     if (!isOpen) return null;
 
     const handleClearHidden = async () => {
@@ -37,9 +87,12 @@ export default function SettingsModal({
     };
 
     const updateInterval = (value: number) => {
-        // Clamp between 100ms and 5000ms
         const clamped = Math.max(100, Math.min(5000, value));
         onAutosaveChange({ ...autosaveSettings, interval: clamped });
+    };
+
+    const toggleShortcut = () => {
+        onShortcutChange({ ...shortcutSettings, enabled: !shortcutSettings.enabled });
     };
 
     return (
@@ -73,6 +126,66 @@ export default function SettingsModal({
                                     Dark
                                 </button>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Global Shortcut */}
+                    <div className="setting-group">
+                        <h4 style={{ margin: '0 0 10px 0' }}>Global Shortcut</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label>Enable Shortcut</label>
+                                <button
+                                    onClick={toggleShortcut}
+                                    style={{
+                                        padding: '5px 15px',
+                                        cursor: 'pointer',
+                                        background: shortcutSettings.enabled ? 'var(--accent-color)' : '#ddd',
+                                        color: shortcutSettings.enabled ? '#fff' : '#000',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        minWidth: '60px'
+                                    }}
+                                >
+                                    {shortcutSettings.enabled ? 'On' : 'Off'}
+                                </button>
+                            </div>
+
+                            {shortcutSettings.enabled && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <label style={{ fontSize: '0.9em' }}>Current Shortcut</label>
+                                        <span style={{
+                                            fontFamily: 'monospace', fontSize: '0.9em',
+                                            padding: '3px 10px', borderRadius: '4px',
+                                            background: 'var(--sidebar-bg, #f5f5f5)',
+                                            border: '1px solid var(--border-color, #ddd)'
+                                        }}>
+                                            {isRecording
+                                                ? (recordedKeys.length > 0 ? recordedKeys.join(" + ") : "Press keys...")
+                                                : shortcutSettings.shortcut
+                                            }
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setIsRecording(!isRecording);
+                                            setRecordedKeys([]);
+                                        }}
+                                        style={{
+                                            padding: '6px 12px',
+                                            cursor: 'pointer',
+                                            background: isRecording ? '#e74c3c' : 'var(--sidebar-active)',
+                                            color: isRecording ? '#fff' : 'var(--text-color)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '4px',
+                                            fontSize: '0.85em'
+                                        }}
+                                    >
+                                        {isRecording ? '⏹ Cancel' : '⌨️ Record New Shortcut'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -166,4 +279,3 @@ export default function SettingsModal({
         </div>
     );
 }
-

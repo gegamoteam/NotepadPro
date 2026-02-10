@@ -4,12 +4,19 @@ import "../styles/modal.css";
 interface OnboardingProps {
     isOpen: boolean;
     onClose: () => void;
+    onEnableShortcut: () => void;
 }
 
-export default function Onboarding({ isOpen, onClose }: OnboardingProps) {
+export default function Onboarding({ isOpen, onClose, onEnableShortcut }: OnboardingProps) {
     const [step, setStep] = useState(0);
+    const [shortcutEnabled, setShortcutEnabled] = useState(false);
 
     if (!isOpen) return null;
+
+    const handleEnableShortcut = () => {
+        onEnableShortcut();
+        setShortcutEnabled(true);
+    };
 
     const slides = [
         {
@@ -28,9 +35,9 @@ export default function Onboarding({ isOpen, onClose }: OnboardingProps) {
             image: "🗂️"
         },
         {
-            title: "Global Access",
-            content: "Add NoteX to your PATH to open it from anywhere with 'note' or 'notex' (Check Settings to configure).",
-            image: "🌍"
+            title: "Quick Launch",
+            content: null, // Custom content rendered below
+            image: "⌨️"
         }
     ];
 
@@ -49,9 +56,46 @@ export default function Onboarding({ isOpen, onClose }: OnboardingProps) {
                     {slides[step].image}
                 </div>
                 <h2>{slides[step].title}</h2>
-                <p style={{ color: '#666', lineHeight: '1.6', minHeight: '60px' }}>
-                    {slides[step].content}
-                </p>
+
+                {step === 3 ? (
+                    <div style={{ minHeight: '100px' }}>
+                        <p style={{ color: '#666', lineHeight: '1.6', margin: '0 0 16px 0' }}>
+                            Open NoteX from anywhere with a global shortcut.
+                        </p>
+                        <div style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '8px',
+                            padding: '8px 16px', borderRadius: '8px',
+                            background: 'var(--sidebar-bg, #f5f5f5)',
+                            border: '1px solid var(--border-color, #ddd)',
+                            fontFamily: 'monospace', fontSize: '15px', fontWeight: 600,
+                            marginBottom: '12px'
+                        }}>
+                            Ctrl + Shift + N
+                        </div>
+                        <div style={{ marginTop: '12px' }}>
+                            <button
+                                onClick={handleEnableShortcut}
+                                disabled={shortcutEnabled}
+                                style={{
+                                    padding: '8px 20px',
+                                    background: shortcutEnabled ? '#27ae60' : 'var(--accent-color)',
+                                    color: 'white', border: 'none', borderRadius: '6px',
+                                    cursor: shortcutEnabled ? 'default' : 'pointer',
+                                    fontSize: '14px', transition: 'all 0.2s'
+                                }}
+                            >
+                                {shortcutEnabled ? '✓ Shortcut Enabled' : 'Enable Shortcut'}
+                            </button>
+                        </div>
+                        <p style={{ color: '#999', fontSize: '11px', marginTop: '8px' }}>
+                            You can change this anytime in Settings.
+                        </p>
+                    </div>
+                ) : (
+                    <p style={{ color: '#666', lineHeight: '1.6', minHeight: '60px' }}>
+                        {slides[step].content}
+                    </p>
+                )}
 
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '5px', margin: '20px 0' }}>
                     {slides.map((_, i) => (

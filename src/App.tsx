@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { documentDir, join } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 import { filesystem } from "./services/filesystem";
 import Sidebar from "./components/Sidebar";
 // import NoteList from "./components/NoteList"; // Removed
@@ -12,7 +13,7 @@ import Onboarding from "./components/Onboarding";
 import MenuBar from "./components/MenuBar";
 import { useNotes } from "./hooks/useNotes";
 import { useAutosave } from "./hooks/useAutosave";
-import { settingsService, AutosaveSettings } from "./services/settings";
+import { settingsService, AutosaveSettings, ShortcutSettings } from "./services/settings";
 import "./styles/global.css";
 
 import "./styles/resizer.css";
@@ -34,6 +35,11 @@ function App() {
   // Autosave settings
   const [autosaveSettings, setAutosaveSettings] = useState<AutosaveSettings>(() =>
     settingsService.loadAutosaveSettings()
+  );
+
+  // Shortcut settings
+  const [shortcutSettings, setShortcutSettings] = useState<ShortcutSettings>(() =>
+    settingsService.loadShortcutSettings()
   );
 
   // Check Onboarding
@@ -189,6 +195,37 @@ function App() {
     settingsService.saveAutosaveSettings(settings);
   };
 
+  // Handler for shortcut settings change
+  const handleShortcutChange = async (settings: ShortcutSettings) => {
+    setShortcutSettings(settings);
+    settingsService.saveShortcutSettings(settings);
+    try {
+      if (settings.enabled) {
+        await invoke('register_shortcut', { shortcut: settings.shortcut });
+      } else {
+        await invoke('unregister_shortcut');
+      }
+    } catch (e) {
+      console.error('Failed to update global shortcut:', e);
+    }
+  };
+
+  // Sync shortcut settings on mount (in case user changed shortcut and reloaded)
+  useEffect(() => {
+    const syncShortcut = async () => {
+      try {
+        if (shortcutSettings.enabled) {
+          await invoke('register_shortcut', { shortcut: shortcutSettings.shortcut });
+        } else {
+          await invoke('unregister_shortcut');
+        }
+      } catch (e) {
+        console.error('Failed to sync global shortcut on mount:', e);
+      }
+    };
+    syncShortcut();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Shortcuts
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
@@ -274,6 +311,8 @@ function App() {
         onChangeRootPath={handleChangeRoot}
         autosaveSettings={autosaveSettings}
         onAutosaveChange={handleAutosaveChange}
+        shortcutSettings={shortcutSettings}
+        onShortcutChange={handleShortcutChange}
       />
 
       <Onboarding
@@ -282,6 +321,7 @@ function App() {
           setShowOnboarding(false);
           settingsService.setSeenOnboarding();
         }}
+        onEnableShortcut={() => handleShortcutChange({ enabled: true, shortcut: 'Ctrl+Shift+N' })}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>

@@ -7,6 +7,9 @@ use tauri::{AppHandle, Emitter, State};
 
 struct WatcherState(Mutex<Option<RecommendedWatcher>>);
 
+// Global shortcut state: stores the currently registered shortcut string
+struct ShortcutStore(Mutex<Option<String>>);
+
 #[derive(Serialize, Deserialize, Clone)]
 struct WatchEvent {
     kind: String,
@@ -208,6 +211,51 @@ fn search_notes(dir: String, query: String) -> Result<Vec<SearchResult>, String>
     Ok(results)
 }
 
+// --- Global Shortcut Commands ---
+
+#[tauri::command]
+fn register_shortcut(app: AppHandle, state: State<'_, ShortcutStore>, shortcut: String) -> Result<bool, String> {
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+    // Unregister any existing shortcut first
+    let mut store = state.0.lock().map_err(|e| e.to_string())?;
+    if let Some(ref old) = *store {
+        let _ = app.global_shortcut().unregister(old.as_str());
+    }
+
+    // Register the new shortcut
+    app.global_shortcut()
+        .on_shortcut(shortcut.as_str(), move |app_handle, _shortcut, _event| {
+            if let Some(window) = app_handle.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        })
+        .map_err(|e| e.to_string())?;
+
+    *store = Some(shortcut);
+    Ok(true)
+}
+
+#[tauri::command]
+fn unregister_shortcut(app: AppHandle, state: State<'_, ShortcutStore>) -> Result<bool, String> {
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+    let mut store = state.0.lock().map_err(|e| e.to_string())?;
+    if let Some(ref old) = *store {
+        app.global_shortcut().unregister(old.as_str()).map_err(|e| e.to_string())?;
+    }
+    *store = None;
+    Ok(true)
+}
+
+#[tauri::command]
+fn get_current_shortcut(state: State<'_, ShortcutStore>) -> Result<Option<String>, String> {
+    let store = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(store.clone())
+}
+
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
@@ -218,11 +266,13 @@ use tauri::{
 pub fn run() {
     tauri::Builder::default()
         .manage(WatcherState(Mutex::new(None)))
+        .manage(ShortcutStore(Mutex::new(None)))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             let _ = app.get_webview_window("main").expect("no main window").show();
             let _ = app.get_webview_window("main").expect("no main window").set_focus();
         }))
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let show_i = MenuItem::with_id(app, "show", "Show NoteX", true, None::<&str>)?;
@@ -259,6 +309,23 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Register default global shortcut (Ctrl+Shift+N)
+            {
+                use tauri_plugin_global_shortcut::GlobalShortcutExt;
+                let app_handle = app.handle().clone();
+                let _ = app.global_shortcut().on_shortcut("Ctrl+Shift+N", move |_app, _shortcut, _event| {
+                    if let Some(window) = app_handle.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.unminimize();
+                        let _ = window.set_focus();
+                    }
+                });
+                // Store the default in managed state
+                let store = app.state::<ShortcutStore>();
+                let mut guard = store.0.lock().unwrap();
+                *guard = Some("Ctrl+Shift+N".to_string());
+            }
+
             Ok(())
         })
         .on_window_event(|window, event| match event {
@@ -277,7 +344,10 @@ pub fn run() {
             rename_item,
             delete_item,
             search_notes,
-            watch_dir
+            watch_dir,
+            register_shortcut,
+            unregister_shortcut,
+            get_current_shortcut
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

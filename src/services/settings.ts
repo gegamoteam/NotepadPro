@@ -9,9 +9,19 @@ export interface AutosaveSettings {
     interval: number; // in ms
 }
 
+export interface ShortcutSettings {
+    enabled: boolean;
+    shortcut: string; // e.g. "Ctrl+Shift+N"
+}
+
 const DEFAULT_AUTOSAVE: AutosaveSettings = {
     enabled: true,
     interval: 200
+};
+
+const DEFAULT_SHORTCUT: ShortcutSettings = {
+    enabled: true,
+    shortcut: "Ctrl+Shift+N"
 };
 
 export const settingsService = {
@@ -59,6 +69,23 @@ export const settingsService = {
         localStorage.setItem("autosaveSettings", JSON.stringify(settings));
     },
 
+    // Shortcut settings
+    loadShortcutSettings(): ShortcutSettings {
+        try {
+            const saved = localStorage.getItem("shortcutSettings");
+            if (saved) {
+                return { ...DEFAULT_SHORTCUT, ...JSON.parse(saved) };
+            }
+        } catch {
+            // Ignore parse errors
+        }
+        return DEFAULT_SHORTCUT;
+    },
+
+    saveShortcutSettings(settings: ShortcutSettings): void {
+        localStorage.setItem("shortcutSettings", JSON.stringify(settings));
+    },
+
     // Onboarding
     async hasSeenOnboarding(): Promise<boolean> {
         return !!(await localStorage.getItem("hasSeenOnboarding"));
@@ -68,4 +95,3 @@ export const settingsService = {
         await localStorage.setItem("hasSeenOnboarding", "true");
     }
 };
-
