@@ -46,7 +46,6 @@ export default function SettingsModal({
         if (e.altKey) modifiers.push("Alt");
 
         const key = e.key;
-        // Ignore standalone modifier keys
         if (["Control", "Shift", "Alt", "Meta"].includes(key)) {
             setRecordedKeys(modifiers);
             return;
@@ -56,7 +55,6 @@ export default function SettingsModal({
         const combo = [...modifiers, keyName];
         setRecordedKeys(combo);
 
-        // Require at least one modifier + a key
         if (modifiers.length > 0) {
             const shortcutStr = combo.join("+");
             onShortcutChange({ ...shortcutSettings, shortcut: shortcutStr, enabled: true });
@@ -99,241 +97,190 @@ export default function SettingsModal({
         onShortcutChange({ ...shortcutSettings, enabled: !shortcutSettings.enabled });
     };
 
+    const selectExtension = (ext: string) => {
+        onShortcutChange({ ...shortcutSettings, defaultExtension: ext });
+        if (['txt', 'md'].includes(ext)) setCustomExtInput('');
+    };
+
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" style={{ width: '90%', maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
+            <div className="settings-modal" onClick={e => e.stopPropagation()}>
+
+                {/* ── Header ──────────────────────── */}
+                <div className="settings-header">
                     <h3>Settings</h3>
-                    <button className="close-btn" onClick={onClose}>&times;</button>
+                    <button className="settings-close-btn" onClick={onClose}>&times;</button>
                 </div>
 
-                <div className="modal-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* ── Scrollable body ─────────────── */}
+                <div className="settings-body">
 
                     {/* Appearance */}
-                    <div className="setting-group">
-                        <h4 style={{ margin: '0 0 10px 0' }}>Appearance</h4>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="settings-section">
+                        <h4>Appearance</h4>
+                        <div className="settings-row">
                             <label>Theme</label>
-                            <div className="toggle-group">
+                            <div className="settings-pills">
                                 <button
-                                    className={`btn-toggle ${theme === 'light' ? 'active' : ''}`}
+                                    className={`settings-pill ${theme === 'light' ? 'active' : ''}`}
                                     onClick={() => onThemeChange('light')}
-                                    style={{ padding: '5px 10px', cursor: 'pointer', background: theme === 'light' ? 'var(--accent-color)' : '#ddd', color: theme === 'light' ? '#fff' : '#000', border: 'none', borderRadius: '4px 0 0 4px' }}
-                                >
-                                    Light
-                                </button>
+                                >Light</button>
                                 <button
-                                    className={`btn-toggle ${theme === 'dark' ? 'active' : ''}`}
+                                    className={`settings-pill ${theme === 'dark' ? 'active' : ''}`}
                                     onClick={() => onThemeChange('dark')}
-                                    style={{ padding: '5px 10px', cursor: 'pointer', background: theme === 'dark' ? 'var(--accent-color)' : '#ddd', color: theme === 'dark' ? '#fff' : '#000', border: 'none', borderRadius: '0 4px 4px 0' }}
-                                >
-                                    Dark
-                                </button>
+                                >Dark</button>
                             </div>
                         </div>
                     </div>
+
+                    <hr className="settings-divider" />
 
                     {/* Global Shortcut */}
-                    <div className="setting-group">
-                        <h4 style={{ margin: '0 0 10px 0' }}>Global Shortcut</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <label>Enable Shortcut</label>
+                    <div className="settings-section">
+                        <h4>Global Shortcut</h4>
+
+                        <div className="settings-row">
+                            <label>Enable Shortcut</label>
+                            <button
+                                className={`settings-toggle ${shortcutSettings.enabled ? 'on' : 'off'}`}
+                                onClick={toggleShortcut}
+                            >
+                                {shortcutSettings.enabled ? 'On' : 'Off'}
+                            </button>
+                        </div>
+
+                        {shortcutSettings.enabled && (
+                            <>
+                                <div className="settings-row">
+                                    <label>Current Shortcut</label>
+                                    <span className="settings-shortcut-badge">
+                                        {isRecording
+                                            ? (recordedKeys.length > 0 ? recordedKeys.join(" + ") : "Press keys…")
+                                            : shortcutSettings.shortcut
+                                        }
+                                    </span>
+                                </div>
+
                                 <button
-                                    onClick={toggleShortcut}
-                                    style={{
-                                        padding: '5px 15px',
-                                        cursor: 'pointer',
-                                        background: shortcutSettings.enabled ? 'var(--accent-color)' : '#ddd',
-                                        color: shortcutSettings.enabled ? '#fff' : '#000',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        minWidth: '60px'
+                                    className={`settings-action-btn ${isRecording ? 'recording' : ''}`}
+                                    onClick={() => {
+                                        setIsRecording(!isRecording);
+                                        setRecordedKeys([]);
                                     }}
                                 >
-                                    {shortcutSettings.enabled ? 'On' : 'Off'}
+                                    {isRecording ? '⏹ Cancel Recording' : '⌨️ Record New Shortcut'}
                                 </button>
-                            </div>
 
-                            {shortcutSettings.enabled && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <label style={{ fontSize: '0.9em' }}>Current Shortcut</label>
-                                        <span style={{
-                                            fontFamily: 'monospace', fontSize: '0.9em',
-                                            padding: '3px 10px', borderRadius: '4px',
-                                            background: 'var(--sidebar-bg, #f5f5f5)',
-                                            border: '1px solid var(--border-color, #ddd)'
-                                        }}>
-                                            {isRecording
-                                                ? (recordedKeys.length > 0 ? recordedKeys.join(" + ") : "Press keys...")
-                                                : shortcutSettings.shortcut
-                                            }
-                                        </span>
+                                <div style={{ marginTop: '4px' }}>
+                                    <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
+                                        Default File Format
+                                    </label>
+                                    <div className="settings-pills" style={{ maxWidth: '240px' }}>
+                                        <button
+                                            className={`settings-pill ${shortcutSettings.defaultExtension === 'txt' ? 'active' : ''}`}
+                                            onClick={() => selectExtension('txt')}
+                                        >.txt</button>
+                                        <button
+                                            className={`settings-pill ${shortcutSettings.defaultExtension === 'md' ? 'active' : ''}`}
+                                            onClick={() => selectExtension('md')}
+                                        >.md</button>
+                                        <button
+                                            className={`settings-pill ${isCustomExt ? 'active' : ''}`}
+                                            onClick={() => selectExtension(customExtInput || 'json')}
+                                        >Custom</button>
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            setIsRecording(!isRecording);
-                                            setRecordedKeys([]);
-                                        }}
-                                        style={{
-                                            padding: '6px 12px',
-                                            cursor: 'pointer',
-                                            background: isRecording ? '#e74c3c' : 'var(--sidebar-active)',
-                                            color: isRecording ? '#fff' : 'var(--text-color)',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '4px',
-                                            fontSize: '0.85em'
-                                        }}
-                                    >
-                                        {isRecording ? '⏹ Cancel' : '⌨️ Record New Shortcut'}
-                                    </button>
 
-                                    {/* Default File Format */}
-                                    <div style={{ marginTop: '4px' }}>
-                                        <label style={{ fontSize: '0.9em', display: 'block', marginBottom: '6px' }}>Default File Format</label>
-                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                            {['txt', 'md'].map(ext => (
-                                                <button
-                                                    key={ext}
-                                                    onClick={() => {
-                                                        onShortcutChange({ ...shortcutSettings, defaultExtension: ext });
-                                                        setCustomExtInput('');
-                                                    }}
-                                                    style={{
-                                                        padding: '4px 12px',
-                                                        borderRadius: '4px',
-                                                        border: shortcutSettings.defaultExtension === ext ? '2px solid var(--accent-color)' : '1px solid var(--border-color, #ddd)',
-                                                        background: shortcutSettings.defaultExtension === ext ? 'var(--accent-color)' : 'var(--sidebar-bg, #f5f5f5)',
-                                                        color: shortcutSettings.defaultExtension === ext ? '#fff' : 'var(--text-color)',
-                                                        cursor: 'pointer',
-                                                        fontFamily: 'monospace',
-                                                        fontSize: '0.85em',
-                                                        fontWeight: 600
-                                                    }}
-                                                >.{ext}</button>
-                                            ))}
-                                            <button
-                                                onClick={() => {
-                                                    const ext = customExtInput || 'json';
-                                                    onShortcutChange({ ...shortcutSettings, defaultExtension: ext });
+                                    {isCustomExt && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
+                                            <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>.</span>
+                                            <input
+                                                type="text"
+                                                className="settings-input"
+                                                value={customExtInput}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                                                    setCustomExtInput(val);
+                                                    if (val) onShortcutChange({ ...shortcutSettings, defaultExtension: val });
                                                 }}
-                                                style={{
-                                                    padding: '4px 12px',
-                                                    borderRadius: '4px',
-                                                    border: isCustomExt ? '2px solid var(--accent-color)' : '1px solid var(--border-color, #ddd)',
-                                                    background: isCustomExt ? 'var(--accent-color)' : 'var(--sidebar-bg, #f5f5f5)',
-                                                    color: isCustomExt ? '#fff' : 'var(--text-color)',
-                                                    cursor: 'pointer',
-                                                    fontSize: '0.85em',
-                                                    fontWeight: 600
-                                                }}
-                                            >Custom</button>
+                                                placeholder="json"
+                                                style={{ width: '90px', fontFamily: 'monospace' }}
+                                            />
                                         </div>
-                                        {isCustomExt && (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
-                                                <span style={{ fontFamily: 'monospace', fontSize: '0.9em' }}>.</span>
-                                                <input
-                                                    type="text"
-                                                    value={customExtInput}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
-                                                        setCustomExtInput(val);
-                                                        if (val) onShortcutChange({ ...shortcutSettings, defaultExtension: val });
-                                                    }}
-                                                    placeholder="json"
-                                                    style={{
-                                                        width: '80px', padding: '3px 6px',
-                                                        border: '1px solid var(--border-color, #ddd)',
-                                                        borderRadius: '4px', fontFamily: 'monospace',
-                                                        fontSize: '0.85em', background: 'var(--bg-color)',
-                                                        color: 'var(--text-color)', outline: 'none'
-                                                    }}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </>
+                        )}
                     </div>
+
+                    <hr className="settings-divider" />
 
                     {/* Autosave */}
-                    <div className="setting-group">
-                        <h4 style={{ margin: '0 0 10px 0' }}>Autosave</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <label>Enable Autosave</label>
-                                <button
-                                    onClick={toggleAutosave}
-                                    style={{
-                                        padding: '5px 15px',
-                                        cursor: 'pointer',
-                                        background: autosaveSettings.enabled ? 'var(--accent-color)' : '#ddd',
-                                        color: autosaveSettings.enabled ? '#fff' : '#000',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        minWidth: '60px'
-                                    }}
-                                >
-                                    {autosaveSettings.enabled ? 'On' : 'Off'}
-                                </button>
-                            </div>
-                            {autosaveSettings.enabled && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <label style={{ fontSize: '0.9em' }}>Interval</label>
-                                        <span style={{ fontSize: '0.85em', color: '#888' }}>{autosaveSettings.interval}ms</span>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min="100"
-                                        max="5000"
-                                        step="100"
-                                        value={autosaveSettings.interval}
-                                        onChange={(e) => updateInterval(parseInt(e.target.value))}
-                                        style={{ width: '100%', cursor: 'pointer' }}
-                                    />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#888' }}>
-                                        <span>100ms (instant)</span>
-                                        <span>5000ms (5s)</span>
-                                    </div>
-                                </div>
-                            )}
+                    <div className="settings-section">
+                        <h4>Autosave</h4>
+                        <div className="settings-row">
+                            <label>Enable Autosave</label>
+                            <button
+                                className={`settings-toggle ${autosaveSettings.enabled ? 'on' : 'off'}`}
+                                onClick={toggleAutosave}
+                            >
+                                {autosaveSettings.enabled ? 'On' : 'Off'}
+                            </button>
                         </div>
+
+                        {autosaveSettings.enabled && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div className="settings-row">
+                                    <label>Interval</label>
+                                    <span className="settings-value">{autosaveSettings.interval}ms</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    className="settings-slider"
+                                    min="100"
+                                    max="5000"
+                                    step="100"
+                                    value={autosaveSettings.interval}
+                                    onChange={(e) => updateInterval(parseInt(e.target.value))}
+                                />
+                                <div className="settings-slider-labels">
+                                    <span>100ms (instant)</span>
+                                    <span>5000ms (5s)</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
+
+                    <hr className="settings-divider" />
 
                     {/* Storage */}
-                    <div className="setting-group">
-                        <h4 style={{ margin: '0 0 10px 0' }}>Storage</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <label style={{ fontSize: '0.9em', color: '#666' }}>Current Location</label>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <input
-                                    type="text"
-                                    value={rootPath}
-                                    readOnly
-                                    style={{ flex: 1, padding: '8px', background: 'var(--bg-color)', color: 'var(--text-color)', border: '1px solid var(--border-color)', borderRadius: '4px' }}
-                                />
-                                <button
-                                    onClick={onChangeRootPath}
-                                    style={{ padding: '8px 12px', background: 'var(--sidebar-active)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-color)' }}
-                                >
-                                    Change...
-                                </button>
-                            </div>
-                            <p style={{ fontSize: '10px', color: '#888', margin: 0 }}>
-                                * Changing this will reload your notes from the new location.
-                            </p>
+                    <div className="settings-section">
+                        <h4>Storage</h4>
+                        <label style={{ fontSize: '12px', color: 'var(--text-secondary, #888)' }}>Current Location</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <input
+                                type="text"
+                                className="settings-input"
+                                value={rootPath}
+                                readOnly
+                                style={{ flex: 1 }}
+                            />
+                            <button className="settings-action-btn" onClick={onChangeRootPath}>
+                                Change…
+                            </button>
                         </div>
+                        <p className="settings-hint">
+                            Changing this will reload your notes from the new location.
+                        </p>
                     </div>
 
+                    <hr className="settings-divider" />
+
                     {/* Data Management */}
-                    <div className="setting-group">
-                        <h4 style={{ margin: '0 0 10px 0' }}>Data Management</h4>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="settings-section">
+                        <h4>Data Management</h4>
+                        <div className="settings-row">
                             <label>Hidden Files</label>
-                            <button onClick={handleClearHidden} style={{ padding: '5px 10px', cursor: 'pointer', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px' }}>
+                            <button className="settings-danger-btn" onClick={handleClearHidden}>
                                 Unhide All
                             </button>
                         </div>
@@ -341,8 +288,11 @@ export default function SettingsModal({
 
                 </div>
 
-                <div className="modal-footer" style={{ padding: '20px', borderTop: '1px solid var(--border-color)', textAlign: 'right' }}>
-                    <button onClick={onClose} className="btn-ok" style={{ padding: '8px 16px', background: 'var(--accent-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Close</button>
+                {/* ── Footer ──────────────────────── */}
+                <div className="settings-footer">
+                    <button className="settings-done-btn" onClick={onClose}>
+                        Done
+                    </button>
                 </div>
             </div>
         </div>
