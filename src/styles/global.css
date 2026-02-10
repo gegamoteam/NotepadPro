@@ -1,23 +1,47 @@
+/* ─── Light Theme (Default) ─────────────────────── */
 :root {
   --bg-color: #ffffff;
-  --text-color: #000000;
+  --text-color: #1a1a1a;
+  --text-secondary: #666666;
+  --text-muted: #999999;
   --sidebar-bg: #f3f3f3;
   --sidebar-hover: #e5e5e5;
   --sidebar-active: #e5f3ff;
   --border-color: #d9d9d9;
+  --border-light: #eeeeee;
   --accent-color: #0078d4;
+  --accent-hover: #91c9f7;
+  --dropdown-bg: #f2f2f2;
+  --input-bg: #ffffff;
+  --selection-bg: #cce8ff;
+  --danger-color: #d00000;
+  --scrollbar-thumb: #cdcdcd;
+  --scrollbar-thumb-hover: #a6a6a6;
+  --shadow-color: rgba(0, 0, 0, 0.15);
   --font-mono: "Cascadia Mono", "Consolas", "Courier New", monospace;
   --font-ui: "Segoe UI", sans-serif;
 }
 
+/* ─── Dark Theme ────────────────────────────────── */
 [data-theme='dark'] {
   --bg-color: #1e1e1e;
   --text-color: #d4d4d4;
+  --text-secondary: #999999;
+  --text-muted: #666666;
   --sidebar-bg: #252526;
   --sidebar-hover: #2a2d2e;
   --sidebar-active: #37373d;
   --border-color: #3e3e42;
+  --border-light: #2d2d30;
   --accent-color: #0078d4;
+  --accent-hover: #1a5a8a;
+  --dropdown-bg: #2d2d30;
+  --input-bg: #1e1e1e;
+  --selection-bg: #264f78;
+  --danger-color: #ff6b6b;
+  --scrollbar-thumb: #555555;
+  --scrollbar-thumb-hover: #777777;
+  --shadow-color: rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -31,9 +55,7 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   overflow: hidden;
-  /* App handles scroll */
   user-select: none;
-  /* UI is not selectable */
   -webkit-font-smoothing: antialiased;
 }
 
@@ -52,9 +74,9 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cdcdcd;
+  background: var(--scrollbar-thumb);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a6a6a6;
+  background: var(--scrollbar-thumb-hover);
 }

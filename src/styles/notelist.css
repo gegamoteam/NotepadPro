@@ -2,7 +2,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: #f7f7f7;
+    background: var(--sidebar-bg);
     border-right: 1px solid var(--border-color);
     font-family: var(--font-ui);
 }
@@ -10,7 +10,7 @@
 .note-list-header {
     padding: 10px;
     border-bottom: 1px solid var(--border-color);
-    background: #fff;
+    background: var(--bg-color);
     display: flex;
     justify-content: flex-end;
 }
@@ -22,14 +22,17 @@
 
 .sort-select {
     padding: 2px 5px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 3px;
     font-size: 11px;
+    background: var(--input-bg);
+    color: var(--text-color);
 }
 
 .sort-dir-btn {
-    border: 1px solid #ddd;
-    background: #fff;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-color);
     cursor: pointer;
     border-radius: 3px;
     width: 24px;
@@ -45,17 +48,17 @@
 
 .note-list-item {
     padding: 10px 15px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-light);
     cursor: pointer;
     transition: background 0.1s;
 }
 
 .note-list-item:hover {
-    background: #eef;
+    background: var(--sidebar-hover);
 }
 
 .note-list-item.selected {
-    background: #0078d7;
+    background: var(--accent-color);
     color: white;
 }
 
@@ -67,7 +70,7 @@
 
 .note-date {
     font-size: 11px;
-    color: #888;
+    color: var(--text-muted);
 }
 
 .note-list-item.selected .note-date {
@@ -76,7 +79,7 @@
 
 .note-preview {
     font-size: 12px;
-    color: #666;
+    color: var(--text-secondary);
     margin-top: 3px;
     white-space: nowrap;
     overflow: hidden;
@@ -90,5 +93,5 @@
 .note-list-empty {
     padding: 20px;
     text-align: center;
-    color: #999;
+    color: var(--text-muted);
 }

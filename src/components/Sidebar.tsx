@@ -233,7 +233,7 @@ export default function Sidebar({
                                 />
                                 Delete Permanently from Disk
                             </label>
-                            <div style={{ fontSize: '12px', color: '#888', marginLeft: '24px' }}>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '24px' }}>
                                 {deletePermanently ? "File will be destroyed." : "File will be hidden from list."}
                             </div>
                         </div>
@@ -322,7 +322,7 @@ export default function Sidebar({
             )}
 
             {!isCollapsed && (
-                <div className="sidebar-header" style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 'bold', color: '#888', display: 'flex', justifyContent: 'space-between' }}>
+                <div className="sidebar-header" style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
                     <span>{sortBy === 'modified' ? 'Recent' : 'All Notes'}</span>
                     <span>{notes.length}</span>
                 </div>

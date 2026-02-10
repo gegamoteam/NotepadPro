@@ -81,12 +81,12 @@ export default function Onboarding({ isOpen, onClose, onEnableShortcut }: Onboar
 
                 {step === 3 ? (
                     <div style={{ minHeight: '100px' }}>
-                        <p style={{ color: '#666', lineHeight: '1.6', margin: '0 0 12px 0' }}>
+                        <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', margin: '0 0 12px 0' }}>
                             Press <strong>Ctrl + Shift + N</strong> from anywhere to open NoteX with a fresh note.
                         </p>
 
                         {/* Extension picker */}
-                        <p style={{ color: '#888', fontSize: '12px', margin: '0 0 8px 0' }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '0 0 8px 0' }}>
                             Default file format:
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -105,10 +105,12 @@ export default function Onboarding({ isOpen, onClose, onEnableShortcut }: Onboar
                                     placeholder="json"
                                     style={{
                                         width: '80px', padding: '4px 8px',
-                                        border: '1px solid var(--border-color, #ddd)',
+                                        border: '1px solid var(--border-color)',
                                         borderRadius: '4px', fontFamily: 'monospace',
                                         fontSize: '14px', textAlign: 'center',
-                                        outline: 'none'
+                                        outline: 'none',
+                                        background: 'var(--input-bg)',
+                                        color: 'var(--text-color)'
                                     }}
                                     autoFocus
                                 />
@@ -132,7 +134,7 @@ export default function Onboarding({ isOpen, onClose, onEnableShortcut }: Onboar
                                 disabled={shortcutEnabled}
                                 style={{
                                     padding: '8px 20px',
-                                    background: shortcutEnabled ? '#27ae60' : 'var(--accent-color)',
+                                    background: shortcutEnabled ? '#27ae60' : 'var(--accent-color, #0078d4)',
                                     color: 'white', border: 'none', borderRadius: '6px',
                                     cursor: shortcutEnabled ? 'default' : 'pointer',
                                     fontSize: '14px', transition: 'all 0.2s'
@@ -141,12 +143,12 @@ export default function Onboarding({ isOpen, onClose, onEnableShortcut }: Onboar
                                 {shortcutEnabled ? '✓ Shortcut Enabled' : 'Enable Shortcut'}
                             </button>
                         </div>
-                        <p style={{ color: '#999', fontSize: '11px', marginTop: '8px' }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '8px' }}>
                             You can change this anytime in Settings.
                         </p>
                     </div>
                 ) : (
-                    <p style={{ color: '#666', lineHeight: '1.6', minHeight: '60px' }}>
+                    <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', minHeight: '60px' }}>
                         {slides[step].content}
                     </p>
                 )}
@@ -155,7 +157,7 @@ export default function Onboarding({ isOpen, onClose, onEnableShortcut }: Onboar
                     {slides.map((_, i) => (
                         <div key={i} style={{
                             width: '8px', height: '8px', borderRadius: '50%',
-                            background: i === step ? 'var(--accent-color)' : '#ddd',
+                            background: i === step ? 'var(--accent-color)' : 'var(--border-color)',
                             transition: 'background 0.3s'
                         }} />
                     ))}
