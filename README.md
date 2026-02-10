@@ -1,55 +1,56 @@
 <p align="center">
-<img src="[https://deeqwntbjl.ufs.sh/f/QTnWo1gvRKxTtnZ45SFFJDW2CqHlc70ZVKQ9iwMXdvrIEbPx](https://deeqwntbjl.ufs.sh/f/QTnWo1gvRKxTtnZ45SFFJDW2CqHlc70ZVKQ9iwMXdvrIEbPx)" alt="NoteX Logo" width="80">
+  <img src="https://deeqwntbjl.ufs.sh/f/QTnWo1gvRKxTtnZ45SFFJDW2CqHlc70ZVKQ9iwMXdvrIEbPx" alt="NoteX Logo" width="80">
 </p>
 
 <h1 align="center">NoteX</h1>
 
 <p align="center">
-<strong>Notepad, but smarter.</strong>
-
-
-
-
-A lightweight, performance-first desktop note-taking experience.
+  <strong>Notepad, but smarter.</strong>
 </p>
 
 <p align="center">
-<a href="[https://notepadpro.lol](https://notepadpro.lol)"><strong>Download at notepadpro.lol</strong></a>
+  A lightweight, performance-first desktop note-taking application built with Tauri V2, React, and TypeScript.
+</p>
+WARNING!!, Currently i didnt implement adding to PATH on the installer, you will have to add it manually via enviroment variables. i will add it soon
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#usage">Usage</a> •
+  <a href="#keyboard-shortcuts">Shortcuts</a> •
+  <a href="#contributing">Contributing</a> •
+  <a href="#license">License</a>
 </p>
 
 <p align="center">
-<img src="[https://img.shields.io/badge/version-0.1.0-blue.svg](https://img.shields.io/badge/version-0.1.0-blue.svg)" alt="Version">
-<img src="[https://img.shields.io/badge/license-MIT-green.svg](https://img.shields.io/badge/license-MIT-green.svg)" alt="License">
-<img src="[https://img.shields.io/badge/tauri-v2-orange.svg](https://img.shields.io/badge/tauri-v2-orange.svg)" alt="Tauri V2">
-<img src="[https://img.shields.io/badge/react-19-61dafb.svg](https://img.shields.io/badge/react-19-61dafb.svg)" alt="React 19">
+  <img src="https://img.shields.io/badge/version-0.1.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/tauri-v2-orange.svg" alt="Tauri V2">
+  <img src="https://img.shields.io/badge/react-19-61dafb.svg" alt="React 19">
 </p>
-
----
-
-## 💡 The Philosophy
-
-**NoteX** is built for those who love the speed of classic Notepad but need the power of modern Markdown. Built with **Tauri V2** and **React 19**, it stays out of your way with a sub-500ms cold start and local-first data ownership.
 
 ---
 
 ## ✨ Features
 
 | Feature | Description |
-| --- | --- |
-| 🎨 **Native Feel** | Minimalist UI designed to feel like a native Windows utility. |
-| 💾 **Auto-Save** | High-frequency saves (every 2s) so you never lose a thought. |
-| 📁 **Local First** | Transparent file-system storage at `~/Documents/NoteX`. |
-| 🔍 **Deep Search** | Full-text indexing to find notes across your entire library instantly. |
-| 📝 **Markdown** | Live preview mode with syntax highlighting and local image rendering. |
-| ⚡ **Performance** | Minimal memory footprint and near-instantaneous startup. |
+|---------|-------------|
+| 🎨 **Native Feel** | Minimalist UI that feels right at home on Windows |
+| 💾 **Auto-Save** | Never lose work — saves every 2 seconds and on exit |
+| 📁 **File Organization** | Real file-system based folders (`~/Documents/NoteX`) |
+| 🔍 **Full-Text Search** | Instantly search across all your notes |
+| 📝 **Markdown Support** | Preview mode with syntax-highlighted code blocks |
+| 🖼️ **Embedded Media** | Render local images directly in Markdown notes |
+| ⚡ **Fast Startup** | Opens in under 500ms with minimal memory usage |
+| 🔧 **Settings** | Configurable autosave interval and preferences |
+| 🌙 **Modern UI** | Clean, distraction-free writing experience |
 
 ---
 
-## 📸 Preview
+## 📸 Screenshots
 
-<p align="center">
-<img width="100%" alt="NoteX Interface" src="[https://github.com/user-attachments/assets/740d7870-33ce-428b-8ea2-36ba7da86e6f](https://github.com/user-attachments/assets/740d7870-33ce-428b-8ea2-36ba7da86e6f)" />
-</p>
+<!-- Add screenshots of your app here -->
+<!-- ![NoteX Screenshot](screenshots/main.png) -->
+<img width="999" height="581" alt="image" src="https://github.com/user-attachments/assets/740d7870-33ce-428b-8ea2-36ba7da86e6f" />
 
 ---
 
@@ -57,10 +58,12 @@ A lightweight, performance-first desktop note-taking experience.
 
 ### Prerequisites
 
-* **[Rust](https://www.rust-lang.org/)** (Backend)
-* **[Node.js](https://nodejs.org/)** (Frontend build)
+Make sure you have the following installed:
 
-### Build from Source
+- **[Rust](https://www.rust-lang.org/tools/install)** — Required for the Tauri backend
+- **[Node.js](https://nodejs.org/)** (LTS recommended) — For the frontend build system
+
+### Clone & Install
 
 ```bash
 # Clone the repository
@@ -69,92 +72,125 @@ cd NotepadPro
 
 # Install dependencies
 npm install
-
-# Run in Development
-npm run tauri dev
-
-# Build Production Executable
-npm run tauri build
-
 ```
 
-The compiled `.exe` or `.msi` will be located in `src-tauri/target/release/bundle/`.
+### Run in Development Mode
+
+```bash
+npm run tauri dev
+```
+
+This starts the Vite dev server and launches the Tauri window with hot-reload enabled.
+
+### Build for Production
+
+```bash
+npm run tauri build
+```
+
+The compiled executable (`.exe` / `.msi`) will be in `src-tauri/target/release/bundle/`.
 
 ---
 
-## 🛠️ Adding to PATH (Manual)
+## 💻 Usage
 
-Since the current installer is in early alpha, you’ll need to add NoteX to your system PATH manually to launch it from the terminal using `notex`.
+1. **Launch NoteX** — Double-click the executable or run from the command line
+2. **Create Notes** — Use the sidebar or press `Ctrl + N`
+3. **Organize** — Create folders to group related notes
+4. **Search** — Use the search bar to find notes instantly
+5. **Markdown** — Write in Markdown and toggle preview mode
 
-### **Windows Instructions**
-
-1. Copy the path to the folder containing your `notex.exe`.
-2. Press `Win + S` and search for **"Edit the system environment variables"**.
-3. Click **Environment Variables** in the bottom right.
-4. Under **User variables**, select **Path** and click **Edit**.
-5. Click **New** and paste the folder path you copied in step 1.
-6. Click **OK** on all windows and restart your terminal.
+All notes are stored as plain `.txt` or `.md` files in your `Documents/NoteX` folder — no proprietary formats, full data ownership.
 
 ---
 
 ## ⌨️ Keyboard Shortcuts
 
 | Shortcut | Action |
-| --- | --- |
-| `Ctrl + N` | Create New Note |
-| `Ctrl + S` | Force Manual Save |
-| `Ctrl + W` | Close Current Note |
-| `Ctrl + F` | Global Find & Replace |
+|----------|--------|
+| `Ctrl + N` | New Note |
+| `Ctrl + S` | Save Note (Manual) |
+| `Ctrl + W` | Close Note |
+| `Ctrl + F` | Find & Replace |
 | `Ctrl + ,` | Open Settings |
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## 🏗️ Architecture
 
-NoteX uses a decoupled architecture to ensure the UI remains fluid even when handling large directories.
+```
+notex/
+├── src/                 # React frontend
+│   ├── components/      # UI components (Editor, Sidebar, etc.)
+│   ├── hooks/           # Custom React hooks
+│   ├── services/        # File service layer
+│   └── styles/          # CSS stylesheets
+├── src-tauri/           # Rust backend
+│   ├── src/             # Tauri commands & file operations
+│   └── tauri.conf.json  # App configuration
+└── public/              # Static assets
+```
 
-* **Core:** [Tauri V2](https://tauri.app/) (Rust)
-* **UI:** React 19 + TypeScript
-* **Styling:** Vanilla CSS (for maximum performance)
-* **Markdown:** `markdown-it` + `highlight.js`
-* **Icons:** Lucide React
+### Tech Stack
 
----
-
-## ⚠️ Known Quirks
-
-* **Dark Mode:** Currently experimental and a bit "crunchy" in certain UI elements. Works best in Light Mode for now.
-* **Early Access:** We are prioritizing stability over fancy UI animations in these early builds.
-
----
-
-## 🛠️ Roadmap
-
-* [ ] **Multi-tab support** (Work on several notes at once)
-* [ ] **Global Shortcuts** (Open NoteX from anywhere)
-* [ ] **Cloud Sync** (Optional encrypted backup)
-* [ ] **PDF Export** (Clean document generation)
-* [ ] **Plugin System** (Community-driven extensions)
+| Layer | Technology |
+|-------|------------|
+| **Backend** | Rust + Tauri V2 |
+| **Frontend** | React 19 + TypeScript |
+| **Bundler** | Vite |
+| **Styling** | Vanilla CSS |
+| **Icons** | Lucide React |
+| **Markdown** | markdown-it + highlight.js |
 
 ---
 
 ## 🤝 Contributing
 
-We love PRs! Whether it's fixing a typo in the README or optimizing the Rust file-watcher:
+Contributions are welcome! Here's how you can help:
 
-1. Fork it.
-2. Create your feature branch.
-3. Commit your changes.
-4. Push to the branch.
-5. Open a Pull Request.
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Development Guidelines
+
+- Follow the existing code style
+- Write meaningful commit messages
+- Test your changes before submitting
+- Update documentation as needed
+
+---
+
+## 📝 Roadmap
+
+- [ ] Multi-tab support
+- [ ] Theme customization (dark/light modes)
+- [ ] Export to PDF
+- [ ] Cloud sync (optional)
+- [ ] Plugin system
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Tauri](https://tauri.app/) — For the amazing Rust-based framework
+- [React](https://react.dev/) — For the frontend library
+- [Lucide](https://lucide.dev/) — For beautiful icons
 
 ---
 
 <p align="center">
-Built with ❤️ by the <a href="[https://gegamo.xyz](https://gegamo.xyz)">Gegamo Team</a>
+  Made with ❤️ by the <a href="https://gegamo.xyz">Gegamo Team</a>
+</p>
 
-
-
-
-Official Website: <a href="[https://notepadpro.lol](https://notepadpro.lol)">notepadpro.lol</a>
+<p align="center">
+  <a href="https://gegamo.xyz">gegamo.xyz</a> • <a href="https://github.com/gegamoteam/NotepadPro">GitHub</a>
 </p>
