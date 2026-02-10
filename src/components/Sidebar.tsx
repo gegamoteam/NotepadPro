@@ -16,7 +16,7 @@ interface SidebarProps {
     // Actions
     onCreateNote: () => void;
     onCreateNoteWithName?: (filename: string) => void;
-    onCreateNoteWithExtension?: (extension: "txt" | "md") => void;
+    onCreateNoteWithExtension?: (extension: string) => void;
     onDelete: (path: string, permanent: boolean) => void; // Updated signature
     onRename: (path: string, newName: string) => void;
     onAdvancedSearch?: () => void; // New prop

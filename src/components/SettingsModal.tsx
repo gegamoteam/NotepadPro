@@ -23,6 +23,10 @@ export default function SettingsModal({
 }: SettingsModalProps) {
     const [isRecording, setIsRecording] = useState(false);
     const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
+    const [customExtInput, setCustomExtInput] = useState(
+        !['txt', 'md'].includes(shortcutSettings.defaultExtension) ? shortcutSettings.defaultExtension : ''
+    );
+    const isCustomExt = !['txt', 'md'].includes(shortcutSettings.defaultExtension);
 
     // Reset recording state when modal closes
     useEffect(() => {
@@ -184,6 +188,71 @@ export default function SettingsModal({
                                     >
                                         {isRecording ? '⏹ Cancel' : '⌨️ Record New Shortcut'}
                                     </button>
+
+                                    {/* Default File Format */}
+                                    <div style={{ marginTop: '4px' }}>
+                                        <label style={{ fontSize: '0.9em', display: 'block', marginBottom: '6px' }}>Default File Format</label>
+                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                            {['txt', 'md'].map(ext => (
+                                                <button
+                                                    key={ext}
+                                                    onClick={() => {
+                                                        onShortcutChange({ ...shortcutSettings, defaultExtension: ext });
+                                                        setCustomExtInput('');
+                                                    }}
+                                                    style={{
+                                                        padding: '4px 12px',
+                                                        borderRadius: '4px',
+                                                        border: shortcutSettings.defaultExtension === ext ? '2px solid var(--accent-color)' : '1px solid var(--border-color, #ddd)',
+                                                        background: shortcutSettings.defaultExtension === ext ? 'var(--accent-color)' : 'var(--sidebar-bg, #f5f5f5)',
+                                                        color: shortcutSettings.defaultExtension === ext ? '#fff' : 'var(--text-color)',
+                                                        cursor: 'pointer',
+                                                        fontFamily: 'monospace',
+                                                        fontSize: '0.85em',
+                                                        fontWeight: 600
+                                                    }}
+                                                >.{ext}</button>
+                                            ))}
+                                            <button
+                                                onClick={() => {
+                                                    const ext = customExtInput || 'json';
+                                                    onShortcutChange({ ...shortcutSettings, defaultExtension: ext });
+                                                }}
+                                                style={{
+                                                    padding: '4px 12px',
+                                                    borderRadius: '4px',
+                                                    border: isCustomExt ? '2px solid var(--accent-color)' : '1px solid var(--border-color, #ddd)',
+                                                    background: isCustomExt ? 'var(--accent-color)' : 'var(--sidebar-bg, #f5f5f5)',
+                                                    color: isCustomExt ? '#fff' : 'var(--text-color)',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.85em',
+                                                    fontWeight: 600
+                                                }}
+                                            >Custom</button>
+                                        </div>
+                                        {isCustomExt && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+                                                <span style={{ fontFamily: 'monospace', fontSize: '0.9em' }}>.</span>
+                                                <input
+                                                    type="text"
+                                                    value={customExtInput}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                                                        setCustomExtInput(val);
+                                                        if (val) onShortcutChange({ ...shortcutSettings, defaultExtension: val });
+                                                    }}
+                                                    placeholder="json"
+                                                    style={{
+                                                        width: '80px', padding: '3px 6px',
+                                                        border: '1px solid var(--border-color, #ddd)',
+                                                        borderRadius: '4px', fontFamily: 'monospace',
+                                                        fontSize: '0.85em', background: 'var(--bg-color)',
+                                                        color: 'var(--text-color)', outline: 'none'
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>

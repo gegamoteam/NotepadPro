@@ -230,6 +230,8 @@ fn register_shortcut(app: AppHandle, state: State<'_, ShortcutStore>, shortcut: 
                 let _ = window.show();
                 let _ = window.unminimize();
                 let _ = window.set_focus();
+                // Tell the frontend to create a new note
+                let _ = app_handle.emit("shortcut-new-note", ());
             }
         })
         .map_err(|e| e.to_string())?;
@@ -318,6 +320,8 @@ pub fn run() {
                         let _ = window.show();
                         let _ = window.unminimize();
                         let _ = window.set_focus();
+                        // Tell the frontend to create a new note
+                        let _ = app_handle.emit("shortcut-new-note", ());
                     }
                 });
                 // Store the default in managed state

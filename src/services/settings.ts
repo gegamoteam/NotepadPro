@@ -12,6 +12,7 @@ export interface AutosaveSettings {
 export interface ShortcutSettings {
     enabled: boolean;
     shortcut: string; // e.g. "Ctrl+Shift+N"
+    defaultExtension: string; // e.g. "txt", "md", or custom like "json"
 }
 
 const DEFAULT_AUTOSAVE: AutosaveSettings = {
@@ -21,7 +22,8 @@ const DEFAULT_AUTOSAVE: AutosaveSettings = {
 
 const DEFAULT_SHORTCUT: ShortcutSettings = {
     enabled: true,
-    shortcut: "Ctrl+Shift+N"
+    shortcut: "Ctrl+Shift+N",
+    defaultExtension: "txt"
 };
 
 export const settingsService = {

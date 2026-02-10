@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { documentDir, join } from "@tauri-apps/api/path";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { filesystem } from "./services/filesystem";
 import Sidebar from "./components/Sidebar";
 // import NoteList from "./components/NoteList"; // Removed
@@ -175,7 +176,7 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  const createNoteWithExtension = async (extension: "txt" | "md") => {
+  const createNoteWithExtension = useCallback(async (extension: string) => {
     try {
       setSortBy("modified");
       const baseName = `New Note.${extension}`;
@@ -184,7 +185,7 @@ function App() {
       const name = path.split('\\').pop() || filename;
       await openNote({ path, name, isFolder: false, lastModified: Date.now() });
     } catch (e) { console.error(e); }
-  };
+  }, [setSortBy, ensureUniqueFilename, _createNote, openNote]);
 
   // Auto-save: Controlled by settings - only runs when enabled AND dirty
   useAutosave(saveActiveNote, autosaveSettings.interval, autosaveSettings.enabled && isDirty);
@@ -225,6 +226,16 @@ function App() {
     };
     syncShortcut();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for global shortcut "new note" event from Rust backend
+  useEffect(() => {
+    const unlisten = listen('shortcut-new-note', () => {
+      // Re-read the latest settings from localStorage to get current extension
+      const latestSettings = settingsService.loadShortcutSettings();
+      createNoteWithExtension(latestSettings.defaultExtension || 'txt');
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, [createNoteWithExtension]);
 
   // Shortcuts
   useEffect(() => {
@@ -321,7 +332,7 @@ function App() {
           setShowOnboarding(false);
           settingsService.setSeenOnboarding();
         }}
-        onEnableShortcut={() => handleShortcutChange({ enabled: true, shortcut: 'Ctrl+Shift+N' })}
+        onEnableShortcut={(ext: string) => handleShortcutChange({ enabled: true, shortcut: 'Ctrl+Shift+N', defaultExtension: ext })}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
