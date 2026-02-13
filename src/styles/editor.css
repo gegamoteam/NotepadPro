@@ -6,6 +6,12 @@
     flex-direction: column;
 }
 
+.editor-input-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
 .editor-textarea {
     width: 100%;
     height: 100%;
@@ -20,6 +26,19 @@
     line-height: 1.5;
 }
 
+/* When syntax highlighting is active, make text transparent so overlay shows through */
+.editor-textarea.syntax-enabled {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    color: transparent;
+    caret-color: var(--text-color);
+    background: transparent;
+    z-index: 1;
+}
+
 .editor-textarea.no-wrap {
     white-space: pre;
     overflow-x: auto;
@@ -30,6 +49,88 @@
     overflow-x: hidden;
 }
 
+/* --- Syntax Highlight Layer --- */
+.syntax-highlight-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    font-family: var(--font-mono);
+    padding: 10px 24px;
+    line-height: 1.5;
+    color: var(--text-color);
+    pointer-events: none;
+    overflow: auto;
+    z-index: 0;
+    border: none;
+    /* Match textarea exactly */
+    box-sizing: border-box;
+    word-break: break-word;
+}
+
+.syntax-highlight-layer.no-wrap {
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.syntax-highlight-layer.wrap {
+    white-space: pre-wrap;
+    overflow-x: hidden;
+}
+
+/* Syntax highlight token colors */
+.sh-heading {
+    color: var(--sh-heading);
+    font-weight: 700;
+}
+
+.sh-bold {
+    color: var(--sh-bold);
+    font-weight: 700;
+}
+
+.sh-italic {
+    color: var(--sh-italic);
+    font-style: italic;
+}
+
+.sh-strikethrough {
+    color: var(--sh-strikethrough);
+    text-decoration: line-through;
+}
+
+.sh-link {
+    color: var(--sh-link);
+    text-decoration: underline;
+}
+
+.sh-code, .sh-code-inline {
+    color: var(--sh-code);
+    background: var(--sh-code-bg);
+    border-radius: 3px;
+    padding: 0 2px;
+}
+
+.sh-blockquote {
+    color: var(--sh-blockquote);
+    font-style: italic;
+}
+
+.sh-list-marker {
+    color: var(--sh-list-marker);
+    font-weight: 600;
+}
+
+.sh-hr {
+    color: var(--sh-hr);
+}
+
+.sh-image {
+    color: var(--sh-image);
+}
+
+/* --- Editor Toolbar (Edit/Preview toggle) --- */
 .editor-toolbar {
     display: flex;
     gap: 6px;
@@ -54,6 +155,50 @@
     border-color: var(--accent-color);
 }
 
+/* --- Markdown Formatting Toolbar --- */
+.md-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--sidebar-bg);
+    flex-wrap: wrap;
+}
+
+.md-toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.md-toolbar-btn:hover {
+    background: var(--sidebar-hover);
+    color: var(--text-color);
+}
+
+.md-toolbar-btn:active {
+    background: var(--accent-color);
+    color: #fff;
+}
+
+.md-toolbar-separator {
+    width: 1px;
+    height: 18px;
+    background: var(--border-color);
+    margin: 0 4px;
+    flex-shrink: 0;
+}
+
+/* --- Markdown Preview --- */
 .markdown-preview {
     flex: 1;
     overflow: auto;
@@ -96,6 +241,17 @@
     border-radius: 6px;
 }
 
+.markdown-preview a {
+    color: var(--accent-color);
+}
+
+.markdown-preview blockquote {
+    border-left: 3px solid var(--accent-color);
+    margin: 8px 0;
+    padding: 4px 16px;
+    color: var(--text-secondary);
+}
+
 .md-image-wrapper {
     position: relative;
     display: block;
@@ -118,6 +274,7 @@
     cursor: nwse-resize;
 }
 
+/* --- Error & Image Editor --- */
 .editor-error {
     position: absolute;
     top: 46px;
