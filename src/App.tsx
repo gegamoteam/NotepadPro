@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { documentDir, join } from "@tauri-apps/api/path";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { save } from "@tauri-apps/plugin-dialog";
+import MarkdownIt from "markdown-it";
 import { filesystem } from "./services/filesystem";
 import Sidebar from "./components/Sidebar";
-// import NoteList from "./components/NoteList"; // Removed
 import Editor from "./components/Editor";
 import StatusBar from "./components/StatusBar";
 import FindReplaceModal from "./components/FindReplaceModal";
@@ -190,6 +191,95 @@ function App() {
   // Auto-save: Controlled by settings - only runs when enabled AND dirty
   useAutosave(saveActiveNote, autosaveSettings.interval, autosaveSettings.enabled && isDirty);
 
+  // --- Auto-create file on typing ---
+  const autoCreatePending = useRef(false);
+  const handleEditorChange = useCallback(async (value: string) => {
+    if (!activeNote && value.length > 0 && !autoCreatePending.current) {
+      autoCreatePending.current = true;
+      try {
+        setSortBy("modified");
+        const filename = ensureUniqueFilename("New Note.txt");
+        const path = await _createNote(undefined, filename);
+        const name = path.split('\\').pop() || filename;
+        await openNote({ path, name, isFolder: false, lastModified: Date.now() });
+        // Now update the content with what user typed
+        updateContent(value);
+      } catch (e) {
+        console.error("Auto-create failed:", e);
+      } finally {
+        autoCreatePending.current = false;
+      }
+    } else {
+      updateContent(value);
+    }
+  }, [activeNote, updateContent, _createNote, openNote, setSortBy, ensureUniqueFilename]);
+
+  // --- Proper Save As ---
+  const handleSaveAs = useCallback(async () => {
+    try {
+      const defaultName = activeNote?.name || "Untitled.txt";
+      const filePath = await save({
+        defaultPath: defaultName,
+        filters: [
+          { name: "Text files", extensions: ["txt"] },
+          { name: "Markdown files", extensions: ["md", "markdown"] },
+          { name: "All files", extensions: ["*"] }
+        ]
+      });
+      if (filePath) {
+        await filesystem.writeNote(filePath, activeNoteContent);
+        const name = filePath.split('\\').pop() || defaultName;
+        await openNote({ path: filePath, name, isFolder: false, lastModified: Date.now() });
+      }
+    } catch (e) {
+      console.error("Save As failed:", e);
+    }
+  }, [activeNote, activeNoteContent, openNote]);
+
+  // --- Proper Print ---
+  const handlePrint = useCallback(() => {
+    const isMarkdown = activeNote?.name?.toLowerCase().endsWith('.md') || activeNote?.name?.toLowerCase().endsWith('.markdown');
+    let htmlContent: string;
+    if (isMarkdown) {
+      const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
+      htmlContent = md.render(activeNoteContent);
+    } else {
+      const escaped = activeNoteContent
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      htmlContent = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 13px; line-height: 1.6;">${escaped}</pre>`;
+    }
+
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html><head>
+        <title>${activeNote?.name || 'Untitled'}</title>
+        <style>
+          body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #1a1a1a; max-width: 800px; margin: 0 auto; }
+          h1, h2, h3, h4, h5, h6 { margin: 16px 0 8px; font-weight: 600; }
+          p { margin: 8px 0; line-height: 1.6; }
+          pre { background: #f5f5f5; padding: 12px; border-radius: 6px; overflow: auto; }
+          code { font-family: 'Cascadia Mono', Consolas, monospace; }
+          a { color: #0078d4; }
+          blockquote { border-left: 4px solid #ddd; margin: 8px 0; padding: 4px 16px; color: #555; }
+          img { max-width: 100%; height: auto; }
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head><body>${htmlContent}</body></html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 300);
+  }, [activeNote, activeNoteContent]);
+
   // Handler for autosave settings change
   const handleAutosaveChange = (settings: AutosaveSettings) => {
     setAutosaveSettings(settings);
@@ -244,7 +334,11 @@ function App() {
         switch (e.key.toLowerCase()) {
           case 's':
             e.preventDefault();
-            saveActiveNote();
+            if (e.shiftKey) {
+              handleSaveAs();
+            } else {
+              saveActiveNote();
+            }
             break;
           case 'n':
             e.preventDefault();
@@ -264,7 +358,7 @@ function App() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [saveActiveNote, rootPath]);
+  }, [saveActiveNote, handleSaveAs, rootPath]);
 
   // Handler for directory change
   const handleChangeRoot = async () => {
@@ -284,8 +378,8 @@ function App() {
         onNewWindow={() => alert("New Window not implemented yet")}
         onOpen={() => alert("Open file dialog not implemented")}
         onSave={saveActiveNote}
-        onSaveAs={() => alert("Save As not implemented")}
-        onPrint={() => window.print()}
+        onSaveAs={handleSaveAs}
+        onPrint={handlePrint}
         onExit={() => window.close()}
 
         onUndo={() => document.execCommand('undo')}
@@ -400,7 +494,7 @@ function App() {
           />
           <Editor
             content={activeNoteContent}
-            onChange={updateContent}
+            onChange={handleEditorChange}
             wordWrap={wordWrap}
             onCursorChange={(line, col) => setCursor({ line, col })}
             fontSize={zoom}

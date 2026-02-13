@@ -20,6 +20,19 @@
   --shadow-color: rgba(0, 0, 0, 0.15);
   --font-mono: "Cascadia Mono", "Consolas", "Courier New", monospace;
   --font-ui: "Segoe UI", sans-serif;
+
+  /* Syntax highlight colors – Light */
+  --sh-heading: #0550ae;
+  --sh-bold: #1a1a1a;
+  --sh-italic: #6a3d9a;
+  --sh-strikethrough: #999999;
+  --sh-link: #0969da;
+  --sh-code: #c5602b;
+  --sh-code-bg: rgba(175, 184, 193, 0.15);
+  --sh-blockquote: #6a737d;
+  --sh-list-marker: #0550ae;
+  --sh-hr: #d0d7de;
+  --sh-image: #1a7f37;
 }
 
 /* ─── Dark Theme ────────────────────────────────── */
@@ -42,6 +55,19 @@
   --scrollbar-thumb: #555555;
   --scrollbar-thumb-hover: #777777;
   --shadow-color: rgba(0, 0, 0, 0.4);
+
+  /* Syntax highlight colors – Dark */
+  --sh-heading: #79c0ff;
+  --sh-bold: #e6e6e6;
+  --sh-italic: #d2a8ff;
+  --sh-strikethrough: #666666;
+  --sh-link: #58a6ff;
+  --sh-code: #e6a07c;
+  --sh-code-bg: rgba(110, 118, 129, 0.25);
+  --sh-blockquote: #8b949e;
+  --sh-list-marker: #79c0ff;
+  --sh-hr: #484f58;
+  --sh-image: #56d364;
 }
 
 * {
