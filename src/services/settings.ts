@@ -95,5 +95,53 @@ export const settingsService = {
 
     async setSeenOnboarding() {
         await localStorage.setItem("hasSeenOnboarding", "true");
+    },
+
+    // Theme setting
+    loadTheme(): 'light' | 'dark' {
+        return (localStorage.getItem("theme") as 'light' | 'dark') || 'light';
+    },
+
+    saveTheme(theme: 'light' | 'dark'): void {
+        localStorage.setItem("theme", theme);
+    },
+
+    // Word Wrap setting
+    loadWordWrap(): boolean {
+        const val = localStorage.getItem("wordWrap");
+        return val !== null ? val === "true" : true;
+    },
+
+    saveWordWrap(wordWrap: boolean): void {
+        localStorage.setItem("wordWrap", String(wordWrap));
+    },
+
+    // Zoom/fontSize setting
+    loadZoom(): number {
+        const val = localStorage.getItem("zoom");
+        return val !== null ? parseInt(val, 10) : 14;
+    },
+
+    saveZoom(zoom: number): void {
+        localStorage.setItem("zoom", String(zoom));
+    },
+
+    // StatusBar setting
+    loadShowStatusBar(): boolean {
+        const val = localStorage.getItem("showStatusBar");
+        return val !== null ? val === "true" : true;
+    },
+
+    saveShowStatusBar(show: boolean): void {
+        localStorage.setItem("showStatusBar", String(show));
+    },
+
+    // RootPath setting
+    loadRootPath(): string | null {
+        return localStorage.getItem("rootPath");
+    },
+
+    saveRootPath(path: string): void {
+        localStorage.setItem("rootPath", path);
     }
 };

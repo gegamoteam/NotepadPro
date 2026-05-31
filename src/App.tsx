@@ -23,8 +23,8 @@ import "./styles/global.css";
 import "./styles/resizer.css";
 
 function App() {
-  const [rootPath, setRootPath] = useState<string>("");
-  const [wordWrap, setWordWrap] = useState(true);
+  const [rootPath, setRootPath] = useState<string>(() => settingsService.loadRootPath() || "");
+  const [wordWrap, setWordWrap] = useState(() => settingsService.loadWordWrap());
   const [cursor, setCursor] = useState({ line: 1, col: 1 });
   const [isFindOpen, setIsFindOpen] = useState(false);
   const [isGoToOpen, setIsGoToOpen] = useState(false);
@@ -32,11 +32,11 @@ function App() {
   const [isAdvSearchOpen, setIsAdvSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false); // New state
   const [showOnboarding, setShowOnboarding] = useState(false); // New state
-  const [showStatusBar, setShowStatusBar] = useState(true);
-  const [zoom, setZoom] = useState(14); // Font size in px
+  const [showStatusBar, setShowStatusBar] = useState(() => settingsService.loadShowStatusBar());
+  const [zoom, setZoom] = useState(() => settingsService.loadZoom()); // Font size in px
 
-  // Settings / Dark Mode State (Placeholder for now)
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  // Settings / Dark Mode State
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => settingsService.loadTheme());
 
   // Autosave settings
   const [autosaveSettings, setAutosaveSettings] = useState<AutosaveSettings>(() =>
@@ -102,17 +102,46 @@ function App() {
   useEffect(() => {
     async function init() {
       try {
-        const docs = await documentDir();
-        const appDir = await join(docs, "NoteX");
-        await filesystem.ensureDir(appDir);
-        setRootPath(appDir);
-        // setSelectedFolderPath(appDir); // Removed
+        const savedRoot = settingsService.loadRootPath();
+        if (savedRoot) {
+          await filesystem.ensureDir(savedRoot);
+          setRootPath(savedRoot);
+        } else {
+          const docs = await documentDir();
+          const appDir = await join(docs, "NoteX");
+          await filesystem.ensureDir(appDir);
+          setRootPath(appDir);
+          settingsService.saveRootPath(appDir);
+        }
       } catch (e) {
         console.error("Failed to get/create document dir", e);
       }
     }
     init();
   }, []);
+
+  // Auto-save settings effects
+  useEffect(() => {
+    settingsService.saveTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
+    settingsService.saveWordWrap(wordWrap);
+  }, [wordWrap]);
+
+  useEffect(() => {
+    settingsService.saveZoom(zoom);
+  }, [zoom]);
+
+  useEffect(() => {
+    settingsService.saveShowStatusBar(showStatusBar);
+  }, [showStatusBar]);
+
+  useEffect(() => {
+    if (rootPath) {
+      settingsService.saveRootPath(rootPath);
+    }
+  }, [rootPath]);
 
   const {
     activeNote,
