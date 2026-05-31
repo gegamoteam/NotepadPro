@@ -7,6 +7,7 @@ interface MenuBarProps {
     onOpen: () => void;
     onSave: () => void;
     onSaveAs: () => void;
+    onPageSetup: () => void;
     onPrint: () => void;
     onExit: () => void;
 
@@ -15,9 +16,13 @@ interface MenuBarProps {
     onCopy: () => void;
     onPaste: () => void;
     onDelete: () => void;
+    onSearchBing: () => void;
     onFind: () => void;
     onFindInFiles: () => void; // New
+    onFindNext: () => void;
+    onFindPrevious: () => void;
     onReplace: () => void;
+    onGoTo: () => void;
     onSelectAll: () => void;
 
     onTimeDate: () => void;
@@ -79,7 +84,7 @@ export default function MenuBar(props: MenuBarProps) {
                             <span>Save As...</span><span className="shortcut">Ctrl+Shift+S</span>
                         </div>
                         <div className="separator"></div>
-                        <div className="dropdown-item disabled">
+                        <div className="dropdown-item" onClick={() => handleAction(props.onPageSetup)}>
                             <span>Page Setup...</span>
                         </div>
                         <div className="dropdown-item" onClick={() => handleAction(props.onPrint)}>
@@ -114,7 +119,7 @@ export default function MenuBar(props: MenuBarProps) {
                             <span>Delete</span><span className="shortcut">Del</span>
                         </div>
                         <div className="separator"></div>
-                        <div className="dropdown-item disabled">
+                        <div className="dropdown-item" onClick={() => handleAction(props.onSearchBing)}>
                             <span>Search with Bing...</span><span className="shortcut">Ctrl+E</span>
                         </div>
                         <div className="dropdown-item" onClick={() => handleAction(props.onFind)}>
@@ -123,16 +128,16 @@ export default function MenuBar(props: MenuBarProps) {
                         <div className="dropdown-item" onClick={() => handleAction(props.onFindInFiles)}>
                             <span>Find in Files...</span><span className="shortcut">Ctrl+Shift+F</span>
                         </div>
-                        <div className="dropdown-item disabled">
+                        <div className="dropdown-item" onClick={() => handleAction(props.onFindNext)}>
                             <span>Find Next</span><span className="shortcut">F3</span>
                         </div>
-                        <div className="dropdown-item disabled">
+                        <div className="dropdown-item" onClick={() => handleAction(props.onFindPrevious)}>
                             <span>Find Previous</span><span className="shortcut">Shift+F3</span>
                         </div>
                         <div className="dropdown-item" onClick={() => handleAction(props.onReplace)}>
                             <span>Replace...</span><span className="shortcut">Ctrl+H</span>
                         </div>
-                        <div className="dropdown-item disabled">
+                        <div className="dropdown-item" onClick={() => handleAction(props.onGoTo)}>
                             <span>Go To...</span><span className="shortcut">Ctrl+G</span>
                         </div>
                         <div className="separator"></div>

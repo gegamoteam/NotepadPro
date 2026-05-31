@@ -88,6 +88,18 @@ export const filesystem = {
             score: r.score,
             matchType: r.match_type === 'filename' ? 'filename' : 'content' // Map string to union type
         }));
+    },
+
+    openFileDialog: async (): Promise<string | null> => {
+        return await invoke<string | null>("open_file_dialog");
+    },
+
+    saveFileDialog: async (defaultName?: string): Promise<string | null> => {
+        return await invoke<string | null>("save_file_dialog", { defaultName });
+    },
+
+    getStartupFile: async (): Promise<string | null> => {
+        return await invoke<string | null>("get_startup_file");
     }
 };
 

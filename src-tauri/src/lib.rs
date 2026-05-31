@@ -258,6 +258,35 @@ fn get_current_shortcut(state: State<'_, ShortcutStore>) -> Result<Option<String
     Ok(store.clone())
 }
 
+// Managed state for file path passed via command line on startup
+struct StartupFile(Mutex<Option<String>>);
+
+#[tauri::command]
+fn open_file_dialog() -> Result<Option<String>, String> {
+    let file = rfd::FileDialog::new()
+        .add_filter("Text & Markdown", &["txt", "md", "markdown", "json", "html", "css", "js", "ts"])
+        .pick_file();
+    Ok(file.map(|p| p.to_string_lossy().into_owned()))
+}
+
+#[tauri::command]
+fn save_file_dialog(default_name: Option<String>) -> Result<Option<String>, String> {
+    let mut dialog = rfd::FileDialog::new();
+    if let Some(name) = default_name {
+        dialog = dialog.set_file_name(name);
+    }
+    let file = dialog
+        .add_filter("Text & Markdown", &["txt", "md", "markdown", "json", "html", "css", "js", "ts"])
+        .save_file();
+    Ok(file.map(|p| p.to_string_lossy().into_owned()))
+}
+
+#[tauri::command]
+fn get_startup_file(state: State<'_, StartupFile>) -> Result<Option<String>, String> {
+    let mut guard = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(guard.take())
+}
+
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
@@ -266,13 +295,33 @@ use tauri::{
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let args: Vec<String> = std::env::args().collect();
+    let startup_file = if args.len() > 1 {
+        let path = &args[1];
+        if std::path::Path::new(path).is_file() {
+            Some(path.clone())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     tauri::Builder::default()
         .manage(WatcherState(Mutex::new(None)))
         .manage(ShortcutStore(Mutex::new(None)))
+        .manage(StartupFile(Mutex::new(startup_file)))
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            let _ = app.get_webview_window("main").expect("no main window").show();
-            let _ = app.get_webview_window("main").expect("no main window").set_focus();
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if args.len() > 1 {
+                let file_path = args[1].clone();
+                let _ = app.emit("open-external-file", file_path);
+            }
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
         }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
@@ -351,7 +400,10 @@ pub fn run() {
             watch_dir,
             register_shortcut,
             unregister_shortcut,
-            get_current_shortcut
+            get_current_shortcut,
+            open_file_dialog,
+            save_file_dialog,
+            get_startup_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

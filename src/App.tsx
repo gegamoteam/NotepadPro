@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { documentDir, join } from "@tauri-apps/api/path";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { filesystem } from "./services/filesystem";
 import Sidebar from "./components/Sidebar";
 // import NoteList from "./components/NoteList"; // Removed
@@ -11,6 +13,7 @@ import FindReplaceModal from "./components/FindReplaceModal";
 import AdvancedSearch from "./components/AdvancedSearch";
 import SettingsModal from "./components/SettingsModal";
 import Onboarding from "./components/Onboarding";
+import InputModal from "./components/InputModal";
 import MenuBar from "./components/MenuBar";
 import { useNotes } from "./hooks/useNotes";
 import { useAutosave } from "./hooks/useAutosave";
@@ -24,6 +27,8 @@ function App() {
   const [wordWrap, setWordWrap] = useState(true);
   const [cursor, setCursor] = useState({ line: 1, col: 1 });
   const [isFindOpen, setIsFindOpen] = useState(false);
+  const [isGoToOpen, setIsGoToOpen] = useState(false);
+  const [lastSearchQuery, setLastSearchQuery] = useState("");
   const [isAdvSearchOpen, setIsAdvSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false); // New state
   const [showOnboarding, setShowOnboarding] = useState(false); // New state
@@ -154,6 +159,177 @@ function App() {
     return candidate;
   };
 
+  const handleOpenExternalFile = useCallback(async (filePath: string) => {
+    try {
+      const isInsideWorkspace = filePath.toLowerCase().startsWith(rootPath.toLowerCase());
+      
+      if (isInsideWorkspace) {
+        const name = filePath.split('\\').pop() || filePath;
+        await openNote({
+          path: filePath,
+          name,
+          isFolder: false,
+          lastModified: Date.now()
+        });
+      } else {
+        const content = await filesystem.readNote(filePath);
+        const originalName = filePath.split('\\').pop() || "imported_note.txt";
+        const uniqueName = ensureUniqueFilename(originalName);
+        const targetPath = `${rootPath}\\${uniqueName}`;
+        
+        await filesystem.writeNote(targetPath, content);
+        await _refreshNotes();
+        
+        await openNote({
+          path: targetPath,
+          name: uniqueName,
+          isFolder: false,
+          lastModified: Date.now()
+        });
+      }
+    } catch (e) {
+      console.error("Failed to open external file:", e);
+      alert(`Failed to open file: ${e}`);
+    }
+  }, [rootPath, openNote, _refreshNotes, ensureUniqueFilename]);
+
+  const handleOpenFileMenu = useCallback(async () => {
+    try {
+      const selected = await filesystem.openFileDialog();
+      if (selected) {
+        await handleOpenExternalFile(selected);
+      }
+    } catch (e) {
+      console.error("Open file error:", e);
+    }
+  }, [handleOpenExternalFile]);
+
+  const handleSaveAsMenu = useCallback(async () => {
+    if (!activeNote) {
+      alert("No active note to save!");
+      return;
+    }
+    try {
+      const selected = await filesystem.saveFileDialog(activeNote.name);
+      if (selected) {
+        await filesystem.writeNote(selected, activeNoteContent);
+        const isInsideWorkspace = selected.toLowerCase().startsWith(rootPath.toLowerCase());
+        if (isInsideWorkspace) {
+          await _refreshNotes();
+          const name = selected.split('\\').pop() || selected;
+          await openNote({
+            path: selected,
+            name,
+            isFolder: false,
+            lastModified: Date.now()
+          });
+        } else {
+          alert(`Successfully saved copy as external file:\n${selected}`);
+        }
+      }
+    } catch (e) {
+      console.error("Save As error:", e);
+      alert(`Save As failed: ${e}`);
+    }
+  }, [activeNote, activeNoteContent, rootPath, _refreshNotes, openNote]);
+
+  const handleNewWindow = useCallback(() => {
+    try {
+      const label = `window-${Date.now()}`;
+      new WebviewWindow(label, {
+        title: "NoteX",
+        width: 1000,
+        height: 550,
+      });
+    } catch (e) {
+      console.error("Failed to create new window:", e);
+    }
+  }, []);
+
+  const handleSearchBing = useCallback(async () => {
+    try {
+      const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+      let query = "";
+      if (textarea) {
+        query = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd).trim();
+      }
+      if (!query && activeNote) {
+        query = activeNote.name;
+      }
+      if (query) {
+        await openUrl(`https://www.bing.com/search?q=${encodeURIComponent(query)}`);
+      } else {
+        alert("Nothing to search!");
+      }
+    } catch (e) {
+      console.error("Search with Bing error:", e);
+    }
+  }, [activeNote]);
+
+  const handleFindText = useCallback((query: string, forward = true) => {
+    if (!query) return;
+    setLastSearchQuery(query);
+    const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const text = textarea.value;
+    const queryLower = query.toLowerCase();
+    const textLower = text.toLowerCase();
+    
+    let index = -1;
+    if (forward) {
+      const startPos = textarea.selectionEnd;
+      index = textLower.indexOf(queryLower, startPos);
+      if (index === -1) {
+        // Wrap around
+        index = textLower.indexOf(queryLower, 0);
+      }
+    } else {
+      const startPos = textarea.selectionStart - 1;
+      index = textLower.lastIndexOf(queryLower, startPos);
+      if (index === -1) {
+        // Wrap around
+        index = textLower.lastIndexOf(queryLower);
+      }
+    }
+
+    if (index !== -1) {
+      textarea.focus();
+      textarea.setSelectionRange(index, index + query.length);
+      const row = text.substring(0, index).split('\n').length;
+      const lineHeight = 20;
+      textarea.scrollTop = Math.max(0, (row - 5) * lineHeight);
+    } else {
+      alert(`No matches found for "${query}"`);
+    }
+  }, []);
+
+  const handleGoToLine = useCallback((lineStr: string) => {
+    const lineNum = parseInt(lineStr, 10);
+    if (isNaN(lineNum) || lineNum < 1) {
+      alert("Invalid line number!");
+      return;
+    }
+    const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const lines = textarea.value.split('\n');
+    if (lineNum > lines.length) {
+      alert(`Line number exceeds total lines (${lines.length})!`);
+      return;
+    }
+
+    let charIndex = 0;
+    for (let i = 0; i < lineNum - 1; i++) {
+      charIndex += lines[i].length + 1; // +1 for the newline
+    }
+
+    textarea.focus();
+    textarea.setSelectionRange(charIndex, charIndex);
+    const lineHeight = 20;
+    textarea.scrollTop = Math.max(0, (lineNum - 5) * lineHeight);
+  }, []);
+
   const createNewNote = async () => {
     try {
       setSortBy("modified");
@@ -237,9 +413,78 @@ function App() {
     return () => { unlisten.then(fn => fn()); };
   }, [createNoteWithExtension]);
 
+  // Startup file loader
+  useEffect(() => {
+    async function checkStartupFile() {
+      if (rootPath) {
+        try {
+          const startupFile = await filesystem.getStartupFile();
+          if (startupFile) {
+            await handleOpenExternalFile(startupFile);
+          }
+        } catch (e) {
+          console.error("Error reading startup file:", e);
+        }
+      }
+    }
+    checkStartupFile();
+  }, [rootPath, handleOpenExternalFile]);
+
+  // Single-instance event listener
+  useEffect(() => {
+    if (!rootPath) return;
+    const unlisten = listen<string>('open-external-file', (event) => {
+      const filePath = event.payload;
+      if (filePath) {
+        handleOpenExternalFile(filePath);
+      }
+    });
+    return () => {
+      unlisten.then(fn => fn());
+    };
+  }, [rootPath, handleOpenExternalFile]);
+
+  // Drag and Drop files onto window
+  useEffect(() => {
+    if (!rootPath) return;
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    };
+
+    const handleDrop = async (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (files.length > 0) {
+        const file = files[0];
+        const absolutePath = (file as any).path;
+        if (absolutePath) {
+          await handleOpenExternalFile(absolutePath);
+        }
+      }
+    };
+
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("drop", handleDrop);
+    return () => {
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("drop", handleDrop);
+    };
+  }, [rootPath, handleOpenExternalFile]);
+
   // Shortcuts
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.key === 'F3') {
+        e.preventDefault();
+        handleFindText(lastSearchQuery, !e.shiftKey);
+      }
       if (e.ctrlKey) {
         switch (e.key.toLowerCase()) {
           case 's':
@@ -249,6 +494,18 @@ function App() {
           case 'n':
             e.preventDefault();
             createNewNote();
+            break;
+          case 'o':
+            e.preventDefault();
+            handleOpenFileMenu();
+            break;
+          case 'g':
+            e.preventDefault();
+            setIsGoToOpen(true);
+            break;
+          case 'e':
+            e.preventDefault();
+            handleSearchBing();
             break;
           case 'f':
             e.preventDefault();
@@ -264,11 +521,10 @@ function App() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [saveActiveNote, rootPath]);
+  }, [saveActiveNote, rootPath, handleOpenFileMenu, lastSearchQuery, handleFindText, handleSearchBing]);
 
   // Handler for directory change
   const handleChangeRoot = async () => {
-    // Allow user to pick (not implemented yet without dialog plugin, just prompt text for now)
     const input = prompt("Enter full path to new notes folder:", rootPath);
     if (input && input !== rootPath) {
       setRootPath(input);
@@ -281,23 +537,54 @@ function App() {
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", overflow: "hidden" }}>
       <MenuBar
         onNew={createNewNote}
-        onNewWindow={() => alert("New Window not implemented yet")}
-        onOpen={() => alert("Open file dialog not implemented")}
+        onNewWindow={handleNewWindow}
+        onOpen={handleOpenFileMenu}
         onSave={saveActiveNote}
-        onSaveAs={() => alert("Save As not implemented")}
+        onSaveAs={handleSaveAsMenu}
+        onPageSetup={() => setIsSettingsOpen(true)}
         onPrint={() => window.print()}
         onExit={() => window.close()}
 
-        onUndo={() => document.execCommand('undo')}
-        onCut={() => document.execCommand('cut')}
-        onCopy={() => document.execCommand('copy')}
-        onPaste={() => document.execCommand('paste')}
-        onDelete={() => document.execCommand('delete')}
+        onUndo={() => {
+          const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+          textarea?.focus();
+          document.execCommand('undo');
+        }}
+        onCut={() => {
+          const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+          textarea?.focus();
+          document.execCommand('cut');
+        }}
+        onCopy={() => {
+          const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+          textarea?.focus();
+          document.execCommand('copy');
+        }}
+        onPaste={() => {
+          const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+          textarea?.focus();
+          document.execCommand('paste');
+        }}
+        onDelete={() => {
+          const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+          textarea?.focus();
+          document.execCommand('delete');
+        }}
+        onSearchBing={handleSearchBing}
         onFind={() => setIsFindOpen(true)}
         onFindInFiles={() => setIsAdvSearchOpen(true)}
+        onFindNext={() => handleFindText(lastSearchQuery, true)}
+        onFindPrevious={() => handleFindText(lastSearchQuery, false)}
         onReplace={() => setIsFindOpen(true)}
-        onSelectAll={() => document.execCommand('selectAll')}
+        onGoTo={() => setIsGoToOpen(true)}
+        onSelectAll={() => {
+          const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+          textarea?.focus();
+          textarea?.select();
+        }}
         onTimeDate={() => {
+          const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+          textarea?.focus();
           updateContent(activeNoteContent + new Date().toLocaleString());
         }}
 
@@ -333,6 +620,14 @@ function App() {
           settingsService.setSeenOnboarding();
         }}
         onEnableShortcut={(ext: string) => handleShortcutChange({ enabled: true, shortcut: 'Ctrl+Shift+N', defaultExtension: ext })}
+      />
+
+      <InputModal
+        isOpen={isGoToOpen}
+        title="Go To Line"
+        initialValue={cursor.line.toString()}
+        onClose={() => setIsGoToOpen(false)}
+        onSubmit={handleGoToLine}
       />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
@@ -375,7 +670,7 @@ function App() {
           <FindReplaceModal
             isOpen={isFindOpen}
             onClose={() => setIsFindOpen(false)}
-            onFind={(query: string) => alert(`Find: ${query}`)}
+            onFind={(query: string) => handleFindText(query, true)}
             onReplace={(q: string, r: string) => {
               // Basic replace in content (only replaces first occurrence usually unless regex)
               // For a real app, this should highlight/select in editor.

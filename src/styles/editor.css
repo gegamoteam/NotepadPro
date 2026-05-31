@@ -4,6 +4,9 @@
     position: relative;
     background-color: var(--bg-color);
     flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .editor-textarea {
@@ -56,10 +59,12 @@
 
 .markdown-preview {
     flex: 1;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: auto;
     padding: 12px 24px;
     font-family: var(--font-ui);
     color: var(--text-color);
+    min-height: 0;
 }
 
 .markdown-preview h1,
