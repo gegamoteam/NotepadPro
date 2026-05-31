@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Note } from "../types/note";
 import "../styles/sidebar.css";
 import InputModal from "./InputModal";
@@ -72,6 +72,18 @@ export default function Sidebar({
     // Multi-selection State
     const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
     const [lastSelectedPath, setLastSelectedPath] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (activeNotePath) {
+            if (!selectedPaths.includes(activeNotePath)) {
+                setSelectedPaths([activeNotePath]);
+                setLastSelectedPath(activeNotePath);
+            }
+        } else {
+            setSelectedPaths([]);
+            setLastSelectedPath(null);
+        }
+    }, [activeNotePath]);
 
     const getVisiblePaths = (): string[] => {
         return notes
@@ -328,7 +340,7 @@ export default function Sidebar({
                 </div>
             )}
 
-            <div className="folder-tree" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: isCollapsed ? 'center' : 'stretch' }}>
+            <div className="folder-tree" style={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: isCollapsed ? 'center' : 'stretch' }}>
                 {renderList()}
             </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { documentDir, join } from "@tauri-apps/api/path";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -134,6 +134,13 @@ function App() {
     setSortBy
   } = useNotes(rootPath);
 
+  const sidebarNotes = useMemo(() => {
+    if (activeNote && !fileSystemRoot.some(note => note.path === activeNote.path)) {
+      return [activeNote, ...fileSystemRoot];
+    }
+    return fileSystemRoot;
+  }, [fileSystemRoot, activeNote]);
+
   const normalizeFilename = (filename: string, fallbackExtension: string) => {
     const trimmed = filename.trim();
     if (!trimmed) return "";
@@ -161,37 +168,18 @@ function App() {
 
   const handleOpenExternalFile = useCallback(async (filePath: string) => {
     try {
-      const isInsideWorkspace = filePath.toLowerCase().startsWith(rootPath.toLowerCase());
-      
-      if (isInsideWorkspace) {
-        const name = filePath.split('\\').pop() || filePath;
-        await openNote({
-          path: filePath,
-          name,
-          isFolder: false,
-          lastModified: Date.now()
-        });
-      } else {
-        const content = await filesystem.readNote(filePath);
-        const originalName = filePath.split('\\').pop() || "imported_note.txt";
-        const uniqueName = ensureUniqueFilename(originalName);
-        const targetPath = `${rootPath}\\${uniqueName}`;
-        
-        await filesystem.writeNote(targetPath, content);
-        await _refreshNotes();
-        
-        await openNote({
-          path: targetPath,
-          name: uniqueName,
-          isFolder: false,
-          lastModified: Date.now()
-        });
-      }
+      const name = filePath.split('\\').pop() || filePath;
+      await openNote({
+        path: filePath,
+        name,
+        isFolder: false,
+        lastModified: Date.now()
+      });
     } catch (e) {
       console.error("Failed to open external file:", e);
       alert(`Failed to open file: ${e}`);
     }
-  }, [rootPath, openNote, _refreshNotes, ensureUniqueFilename]);
+  }, [openNote]);
 
   const handleOpenFileMenu = useCallback(async () => {
     try {
@@ -642,7 +630,7 @@ function App() {
           backgroundColor: "var(--sidebar-bg)"
         }}>
           <Sidebar
-            notes={fileSystemRoot}
+            notes={sidebarNotes}
             activeNotePath={activeNote?.path}
             onOpenNote={openNote}
             onCreateNote={createNewNote}
