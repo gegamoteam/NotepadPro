@@ -3,6 +3,7 @@ import MarkdownIt from "markdown-it";
 import hljs from "highlight.js";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { filesystem } from "../services/filesystem";
+import { joinPath, getParentPath } from "../utils/paths";
 import {
     buildImageMarkdown,
     generateAltText,
@@ -129,9 +130,7 @@ export default function Editor({ content, onChange, wordWrap, onCursorChange, fo
 
     const baseDir = useMemo(() => {
         if (!filePath) return "";
-        const index = filePath.lastIndexOf("\\");
-        if (index === -1) return "";
-        return filePath.slice(0, index);
+        return getParentPath(filePath);
     }, [filePath]);
 
     const markdownParser = useMemo(() => {
@@ -158,13 +157,12 @@ export default function Editor({ content, onChange, wordWrap, onCursorChange, fo
             if (/^(https?:|data:|blob:|tauri:)/i.test(pathPart)) {
                 return src;
             }
-            const normalized = pathPart.replace(/\//g, "\\");
-            const isAbsolute = /^[a-zA-Z]:\\/.test(normalized) || normalized.startsWith("\\\\");
+            const isAbsolute = pathPart.startsWith('/') || /^[a-zA-Z]:[/\\]/.test(pathPart) || pathPart.startsWith('\\\\') || pathPart.startsWith('//');
             if (isAbsolute) {
-                return `${convertFileSrc(normalized)}${suffix}`;
+                return `${convertFileSrc(pathPart)}${suffix}`;
             }
             if (baseDir) {
-                return `${convertFileSrc(`${baseDir}\\${normalized}`)}${suffix}`;
+                return `${convertFileSrc(joinPath(baseDir, pathPart))}${suffix}`;
             }
             return src;
         };
@@ -269,10 +267,10 @@ export default function Editor({ content, onChange, wordWrap, onCursorChange, fo
 
     const saveImageAsset = async (blob: Blob, extension: string) => {
         if (!rootPath) throw new Error("Missing root path");
-        const assetsDir = `${rootPath}\\assets`;
+        const assetsDir = joinPath(rootPath, "assets");
         await filesystem.createFolder(assetsDir);
         const fileName = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extension}`;
-        const fullPath = `${assetsDir}\\${fileName}`;
+        const fullPath = joinPath(assetsDir, fileName);
         const buffer = new Uint8Array(await blob.arrayBuffer());
         await filesystem.writeBinary(fullPath, buffer);
         return `assets/${fileName}`;

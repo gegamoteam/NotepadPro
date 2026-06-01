@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import "../styles/modal.css";
 import { filesystem } from "../services/filesystem";
 import { AutosaveSettings, ShortcutSettings } from "../services/settings";
+import { joinPath } from "../utils/paths";
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -73,7 +74,7 @@ export default function SettingsModal({
 
     const handleClearHidden = async () => {
         if (confirm("Are you sure you want to unhide all hidden files?")) {
-            const hiddenPath = `${rootPath}\\.hidden.json`;
+            const hiddenPath = joinPath(rootPath, ".hidden.json");
             try {
                 await filesystem.deleteItem(hiddenPath);
                 alert("Hidden files cleared. Please refresh (Ctrl+R) or restart.");

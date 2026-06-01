@@ -293,19 +293,30 @@ use tauri::{
     Manager, WindowEvent,
 };
 
+fn get_file_from_args(args: &[String]) -> Option<String> {
+    for arg in args.iter().skip(1) {
+        if arg.starts_with('-') {
+            continue;
+        }
+        let mut decoded_path = arg.clone();
+        if arg.starts_with("file://") {
+            if let Ok(url) = url::Url::parse(arg) {
+                if let Ok(path) = url.to_file_path() {
+                    decoded_path = path.to_string_lossy().into_owned();
+                }
+            }
+        }
+        if std::path::Path::new(&decoded_path).is_file() {
+            return Some(decoded_path);
+        }
+    }
+    None
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let args: Vec<String> = std::env::args().collect();
-    let startup_file = if args.len() > 1 {
-        let path = &args[1];
-        if std::path::Path::new(path).is_file() {
-            Some(path.clone())
-        } else {
-            None
-        }
-    } else {
-        None
-    };
+    let startup_file = get_file_from_args(&args);
 
     tauri::Builder::default()
         .manage(WatcherState(Mutex::new(None)))
@@ -313,8 +324,7 @@ pub fn run() {
         .manage(StartupFile(Mutex::new(startup_file)))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            if args.len() > 1 {
-                let file_path = args[1].clone();
+            if let Some(file_path) = get_file_from_args(&args) {
                 let _ = app.emit("open-external-file", file_path);
             }
             if let Some(window) = app.get_webview_window("main") {

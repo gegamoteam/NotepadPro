@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { Note } from "../types/note";
 import { filesystem } from "../services/filesystem";
 import { settingsService } from "../services/settings";
+import { joinPath, getParentPath, getFilename } from "../utils/paths";
 
 export function useNotes(rootPath: string) {
     const [activeNote, setActiveNote] = useState<Note | null>(null);
@@ -95,7 +96,7 @@ export function useNotes(rootPath: string) {
         settingsService.loadPinned().then(setPinnedPaths);
         // Load hidden paths
         const loadHidden = async () => {
-            const hiddenFile = `${rootPath}\\.hidden.json`;
+            const hiddenFile = joinPath(rootPath, ".hidden.json");
             try {
                 const content = await filesystem.readNote(hiddenFile);
                 setHiddenPaths(JSON.parse(content));
@@ -109,7 +110,7 @@ export function useNotes(rootPath: string) {
 
     // Save hidden paths helper
     const saveHiddenPaths = async (paths: string[]) => {
-        const hiddenFile = `${rootPath}\\.hidden.json`;
+        const hiddenFile = joinPath(rootPath, ".hidden.json");
         try {
             await filesystem.writeNote(hiddenFile, JSON.stringify(paths, null, 2));
         } catch (e) {
@@ -192,13 +193,14 @@ export function useNotes(rootPath: string) {
             let newPath = newNameOrPath;
             let newName = newNameOrPath;
 
-            if (!newNameOrPath.includes('\\')) {
+            const isFullPath = newNameOrPath.includes('/') || newNameOrPath.includes('\\');
+            if (!isFullPath) {
                 // It's just a name, keep parent
-                const parent = oldPath.substring(0, oldPath.lastIndexOf('\\'));
-                newPath = `${parent}\\${newNameOrPath}`;
+                const parent = getParentPath(oldPath);
+                newPath = joinPath(parent, newNameOrPath);
             } else {
                 // It's a full path (Move)
-                newName = newPath.split('\\').pop() || newPath;
+                newName = getFilename(newPath);
             }
 
             await filesystem.renameItem(oldPath, newPath);
@@ -247,7 +249,7 @@ export function useNotes(rootPath: string) {
     // Create new note
     const createNote = useCallback(async (_parentPath: string | undefined, name: string) => {
         try {
-            const path = `${rootPath}\\${name}`; // Windows separator
+            const path = joinPath(rootPath, name);
             if (hiddenPaths.includes(path)) {
                 const updatedHidden = hiddenPaths.filter(p => p !== path);
                 setHiddenPaths(updatedHidden);
@@ -264,7 +266,7 @@ export function useNotes(rootPath: string) {
 
     const createFolder = useCallback(async (parentPath: string, name: string) => {
         try {
-            const path = `${parentPath}\\${name}`;
+            const path = joinPath(parentPath, name);
             await filesystem.createFolder(path);
             await refreshNotes();
             return path;

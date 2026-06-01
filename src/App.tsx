@@ -197,7 +197,7 @@ function App() {
 
   const handleOpenExternalFile = useCallback(async (filePath: string) => {
     try {
-      const name = filePath.split('\\').pop() || filePath;
+      const name = filePath.split(/[/\\]/).pop() || filePath;
       await openNote({
         path: filePath,
         name,
@@ -233,7 +233,7 @@ function App() {
         const isInsideWorkspace = selected.toLowerCase().startsWith(rootPath.toLowerCase());
         if (isInsideWorkspace) {
           await _refreshNotes();
-          const name = selected.split('\\').pop() || selected;
+          const name = selected.split(/[/\\]/).pop() || selected;
           await openNote({
             path: selected,
             name,
@@ -352,7 +352,7 @@ function App() {
       setSortBy("modified");
       const filename = ensureUniqueFilename("New Note.txt");
       const path = await _createNote(undefined, filename);
-      const name = path.split('\\').pop() || "New Note.txt";
+      const name = path.split(/[/\\]/).pop() || "New Note.txt";
       await openNote({ path, name, isFolder: false, lastModified: Date.now() });
     } catch (e) { console.error(e); }
   };
@@ -364,7 +364,7 @@ function App() {
       setSortBy("modified");
       const uniqueName = ensureUniqueFilename(normalized);
       const path = await _createNote(undefined, uniqueName);
-      const name = path.split('\\').pop() || uniqueName;
+      const name = path.split(/[/\\]/).pop() || uniqueName;
       await openNote({ path, name, isFolder: false, lastModified: Date.now() });
     } catch (e) { console.error(e); }
   };
@@ -375,7 +375,7 @@ function App() {
       const baseName = `New Note.${extension}`;
       const filename = ensureUniqueFilename(baseName);
       const path = await _createNote(undefined, filename);
-      const name = path.split('\\').pop() || filename;
+      const name = path.split(/[/\\]/).pop() || filename;
       await openNote({ path, name, isFolder: false, lastModified: Date.now() });
     } catch (e) { console.error(e); }
   }, [setSortBy, ensureUniqueFilename, _createNote, openNote]);
@@ -502,43 +502,114 @@ function App() {
         e.preventDefault();
         handleFindText(lastSearchQuery, !e.shiftKey);
       }
+      if (e.key === 'F5') {
+        e.preventDefault();
+        const textarea = document.querySelector(".editor-textarea") as HTMLTextAreaElement;
+        if (textarea) {
+          textarea.focus();
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const timeStr = new Date().toLocaleString();
+          const nextValue = activeNoteContent.slice(0, start) + timeStr + activeNoteContent.slice(end);
+          updateContent(nextValue);
+          setTimeout(() => {
+            textarea.setSelectionRange(start + timeStr.length, start + timeStr.length);
+          }, 0);
+        } else {
+          updateContent(activeNoteContent + new Date().toLocaleString());
+        }
+      }
       if (e.ctrlKey) {
-        switch (e.key.toLowerCase()) {
-          case 's':
-            e.preventDefault();
-            saveActiveNote();
-            break;
-          case 'n':
-            e.preventDefault();
-            createNewNote();
-            break;
-          case 'o':
-            e.preventDefault();
-            handleOpenFileMenu();
-            break;
-          case 'g':
-            e.preventDefault();
-            setIsGoToOpen(true);
-            break;
-          case 'e':
-            e.preventDefault();
-            handleSearchBing();
-            break;
-          case 'f':
-            e.preventDefault();
-            setIsFindOpen(true);
-            break;
-          case ',': // Command + , usually
-            e.preventDefault();
-            setIsSettingsOpen(true);
-            break;
+        if (e.shiftKey) {
+          switch (e.key.toLowerCase()) {
+            case 'n':
+              e.preventDefault();
+              handleNewWindow();
+              break;
+            case 's':
+              e.preventDefault();
+              handleSaveAsMenu();
+              break;
+            case 'f':
+              e.preventDefault();
+              setIsAdvSearchOpen(true);
+              break;
+          }
+        } else {
+          switch (e.key.toLowerCase()) {
+            case 's':
+              e.preventDefault();
+              saveActiveNote();
+              break;
+            case 'n':
+              e.preventDefault();
+              createNewNote();
+              break;
+            case 'o':
+              e.preventDefault();
+              handleOpenFileMenu();
+              break;
+            case 'g':
+              e.preventDefault();
+              setIsGoToOpen(true);
+              break;
+            case 'e':
+              e.preventDefault();
+              handleSearchBing();
+              break;
+            case 'f':
+              e.preventDefault();
+              setIsFindOpen(true);
+              break;
+            case 'h':
+              e.preventDefault();
+              setIsFindOpen(true);
+              break;
+            case 'p':
+              e.preventDefault();
+              window.print();
+              break;
+            case '=':
+            case '+':
+              e.preventDefault();
+              setZoom(z => z + 2);
+              break;
+            case '-':
+              e.preventDefault();
+              setZoom(z => Math.max(8, z - 2));
+              break;
+            case '0':
+              e.preventDefault();
+              setZoom(14);
+              break;
+            case ',':
+              e.preventDefault();
+              setIsSettingsOpen(true);
+              break;
+          }
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [saveActiveNote, rootPath, handleOpenFileMenu, lastSearchQuery, handleFindText, handleSearchBing]);
+  }, [
+    saveActiveNote,
+    rootPath,
+    handleOpenFileMenu,
+    lastSearchQuery,
+    handleFindText,
+    handleSearchBing,
+    handleNewWindow,
+    handleSaveAsMenu,
+    setIsAdvSearchOpen,
+    setIsFindOpen,
+    setIsGoToOpen,
+    setIsSettingsOpen,
+    setZoom,
+    updateContent,
+    activeNoteContent
+  ]);
 
   // Handler for directory change
   const handleChangeRoot = async () => {
