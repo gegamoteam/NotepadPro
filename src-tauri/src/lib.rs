@@ -225,13 +225,15 @@ fn register_shortcut(app: AppHandle, state: State<'_, ShortcutStore>, shortcut: 
 
     // Register the new shortcut
     app.global_shortcut()
-        .on_shortcut(shortcut.as_str(), move |app_handle, _shortcut, _event| {
-            if let Some(window) = app_handle.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-                // Tell the frontend to create a new note
-                let _ = app_handle.emit("shortcut-new-note", ());
+        .on_shortcut(shortcut.as_str(), move |app_handle, _shortcut, event| {
+            if matches!(event.state(), tauri_plugin_global_shortcut::ShortcutState::Pressed) {
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.unminimize();
+                    let _ = window.set_focus();
+                    // Tell the frontend to create a new note
+                    let _ = app_handle.emit("shortcut-new-note", ());
+                }
             }
         })
         .map_err(|e| e.to_string())?;
@@ -374,13 +376,15 @@ pub fn run() {
             {
                 use tauri_plugin_global_shortcut::GlobalShortcutExt;
                 let app_handle = app.handle().clone();
-                let _ = app.global_shortcut().on_shortcut("Ctrl+Shift+N", move |_app, _shortcut, _event| {
-                    if let Some(window) = app_handle.get_webview_window("main") {
-                        let _ = window.show();
-                        let _ = window.unminimize();
-                        let _ = window.set_focus();
-                        // Tell the frontend to create a new note
-                        let _ = app_handle.emit("shortcut-new-note", ());
+                let _ = app.global_shortcut().on_shortcut("Ctrl+Shift+N", move |_app, _shortcut, event| {
+                    if matches!(event.state(), tauri_plugin_global_shortcut::ShortcutState::Pressed) {
+                        if let Some(window) = app_handle.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.unminimize();
+                            let _ = window.set_focus();
+                            // Tell the frontend to create a new note
+                            let _ = app_handle.emit("shortcut-new-note", ());
+                        }
                     }
                 });
                 // Store the default in managed state
