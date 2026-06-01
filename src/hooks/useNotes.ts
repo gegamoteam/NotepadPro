@@ -35,6 +35,7 @@ export function useNotes(rootPath: string) {
             // Let's Flatten it to ensure we see ALL notes, but ignore folder structure.
 
             const flatten = (nodes: Note[]): Note[] => {
+                if (!nodes || !Array.isArray(nodes)) return [];
                 let flat: Note[] = [];
                 for (const node of nodes) {
                     // Filter system files (like pinned.json) and folders
