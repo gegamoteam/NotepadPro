@@ -289,6 +289,148 @@ fn get_startup_file(state: State<'_, StartupFile>) -> Result<Option<String>, Str
     Ok(guard.take())
 }
 
+#[derive(Serialize)]
+struct OsInfo {
+    os: &'static str,
+    arch: &'static str,
+}
+
+#[tauri::command]
+fn get_os_info() -> OsInfo {
+    OsInfo {
+        os: std::env::consts::OS,
+        arch: std::env::consts::ARCH,
+    }
+}
+
+fn download_file_sync(url: &str, dest_path: &str) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        // Try curl first (Win10 1803+ has curl.exe)
+        let status = std::process::Command::new("curl")
+            .args(&["-L", url, "-o", dest_path])
+            .status();
+        if status.is_ok() && status.unwrap().success() {
+            return Ok(());
+        }
+        // Fallback to PowerShell
+        let status_ps = std::process::Command::new("powershell")
+            .args(&[
+                "-NoProfile",
+                "-Command",
+                &format!(
+                    "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '{}' -OutFile '{}'",
+                    url, dest_path
+                )
+            ])
+            .status();
+        if status_ps.is_ok() && status_ps.unwrap().success() {
+            return Ok(());
+        }
+        Err("Failed to download file using curl and powershell".to_string())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // Try curl first
+        let status = std::process::Command::new("curl")
+            .args(&["-L", url, "-o", dest_path])
+            .status();
+        if status.is_ok() && status.unwrap().success() {
+            return Ok(());
+        }
+        // Fallback to wget
+        let status_wget = std::process::Command::new("wget")
+            .args(&[url, "-O", dest_path])
+            .status();
+        if status_wget.is_ok() && status_wget.unwrap().success() {
+            return Ok(());
+        }
+        Err("Failed to download file using curl and wget".to_string())
+    }
+}
+
+#[tauri::command]
+fn start_download(app: AppHandle, url: String, dest_path: String, total_size: u64) -> Result<(), String> {
+    std::thread::spawn(move || {
+        let app_clone = app.clone();
+        let dest_clone = dest_path.clone();
+        
+        let download_thread = std::thread::spawn(move || {
+            download_file_sync(&url, &dest_clone)
+        });
+
+        while !download_thread.is_finished() {
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            if let Ok(metadata) = std::fs::metadata(&dest_path) {
+                let size = metadata.len();
+                let pct = if total_size > 0 {
+                    (size as f64 / total_size as f64 * 100.0) as u32
+                } else {
+                    0
+                };
+                let _ = app_clone.emit("download-progress", pct);
+            }
+        }
+
+        match download_thread.join() {
+            Ok(Ok(_)) => {
+                let _ = app_clone.emit("download-progress", 100);
+                let _ = app_clone.emit("download-complete", ());
+            }
+            Ok(Err(e)) => {
+                let _ = std::fs::remove_file(&dest_path);
+                let _ = app_clone.emit("download-error", e);
+            }
+            Err(_) => {
+                let _ = std::fs::remove_file(&dest_path);
+                let _ = app_clone.emit("download-error", "Download thread panicked".to_string());
+            }
+        }
+    });
+    Ok(())
+}
+
+#[tauri::command]
+fn install_update(app: AppHandle, path: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        if path.ends_with(".msi") {
+            std::process::Command::new("msiexec")
+                .args(&["/i", &path])
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        } else {
+            std::process::Command::new(&path)
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        if path.ends_with(".AppImage") {
+            let _ = std::process::Command::new("chmod")
+                .args(&["+x", &path])
+                .status();
+        }
+        std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    app.exit(0);
+    Ok(())
+}
+
+
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
@@ -417,7 +559,10 @@ pub fn run() {
             get_current_shortcut,
             open_file_dialog,
             save_file_dialog,
-            get_startup_file
+            get_startup_file,
+            get_os_info,
+            start_download,
+            install_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

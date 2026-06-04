@@ -143,5 +143,16 @@ export const settingsService = {
 
     saveRootPath(path: string): void {
         localStorage.setItem("rootPath", path);
+    },
+
+    // Auto-update setting
+    loadAutoUpdateSettings(): boolean {
+        const val = localStorage.getItem("autoUpdateEnabled");
+        return val !== null ? val === "true" : true;
+    },
+
+    saveAutoUpdateSettings(enabled: boolean): void {
+        localStorage.setItem("autoUpdateEnabled", String(enabled));
     }
 };
+

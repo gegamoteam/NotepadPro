@@ -15,12 +15,16 @@ interface SettingsModalProps {
     onAutosaveChange: (settings: AutosaveSettings) => void;
     shortcutSettings: ShortcutSettings;
     onShortcutChange: (settings: ShortcutSettings) => void;
+    autoUpdateEnabled: boolean;
+    onAutoUpdateChange: (enabled: boolean) => void;
+    onCheckUpdate: () => void;
 }
 
 export default function SettingsModal({
     isOpen, onClose, theme, onThemeChange, rootPath, onChangeRootPath,
     autosaveSettings, onAutosaveChange,
-    shortcutSettings, onShortcutChange
+    shortcutSettings, onShortcutChange,
+    autoUpdateEnabled, onAutoUpdateChange, onCheckUpdate
 }: SettingsModalProps) {
     const [isRecording, setIsRecording] = useState(false);
     const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
@@ -283,6 +287,28 @@ export default function SettingsModal({
                             <label>Hidden Files</label>
                             <button className="settings-danger-btn" onClick={handleClearHidden}>
                                 Unhide All
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr className="settings-divider" />
+
+                    {/* Application Updates */}
+                    <div className="settings-section">
+                        <h4>Application Updates</h4>
+                        <div className="settings-row">
+                            <label>Auto-check for Updates</label>
+                            <button
+                                className={`settings-toggle ${autoUpdateEnabled ? 'on' : 'off'}`}
+                                onClick={() => onAutoUpdateChange(!autoUpdateEnabled)}
+                            >
+                                {autoUpdateEnabled ? 'On' : 'Off'}
+                            </button>
+                        </div>
+                        <div className="settings-row">
+                            <label>Manual check</label>
+                            <button className="settings-action-btn" onClick={onCheckUpdate}>
+                                Check for Updates…
                             </button>
                         </div>
                     </div>

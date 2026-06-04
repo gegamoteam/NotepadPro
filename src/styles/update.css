@@ -1,0 +1,219 @@
+/* Update Modal Overlay */
+.update-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Glassmorphic Update Dialog Container */
+.update-dialog {
+    background: var(--update-bg, rgba(255, 255, 255, 0.85));
+    border: 1px solid var(--update-border, rgba(255, 255, 255, 0.4));
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.15);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 480px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-color, #1a1a1a);
+    animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme='dark'] .update-dialog {
+    background: var(--update-bg, rgba(30, 30, 30, 0.8));
+    border: 1px solid var(--update-border, rgba(255, 255, 255, 0.08));
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+}
+
+/* Header Section */
+.update-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.update-icon {
+    font-size: 32px;
+    background: linear-gradient(135deg, #0078d7, #00c6ff);
+    color: #fff;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 120, 215, 0.3);
+}
+
+.update-title-group h3 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+}
+
+.update-version-tag {
+    font-size: 12px;
+    color: var(--accent-color, #0078d7);
+    font-weight: 600;
+    background: rgba(0, 120, 215, 0.1);
+    padding: 2px 8px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+/* Release Notes / Scrollable Body */
+.update-notes-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.update-notes-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary, #666);
+}
+
+.update-notes-content {
+    background: var(--sidebar-bg, rgba(0, 0, 0, 0.03));
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    font-family: inherit;
+}
+
+[data-theme='dark'] .update-notes-content {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Custom Scrollbar for Notes */
+.update-notes-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.update-notes-content::-webkit-scrollbar-thumb {
+    background: var(--border-color, rgba(0, 0, 0, 0.15));
+    border-radius: 3px;
+}
+
+/* Progress bar section */
+.update-progress-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.update-progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.update-progress-bg {
+    background: var(--sidebar-bg, rgba(0, 0, 0, 0.05));
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+[data-theme='dark'] .update-progress-bg {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.update-progress-fill {
+    background: linear-gradient(90deg, #0078d7, #00c6ff);
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.2s cubic-bezier(0.1, 0.8, 0.25, 1);
+}
+
+/* Actions Section */
+.update-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.update-btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s ease, filter 0.15s ease, background 0.15s ease;
+}
+
+.update-btn:active {
+    transform: scale(0.97);
+}
+
+.update-btn-cancel {
+    background: var(--sidebar-bg, #f0f0f0);
+    color: var(--text-color, #333);
+}
+
+.update-btn-cancel:hover {
+    background: var(--sidebar-active, #e5e5e5);
+}
+
+.update-btn-primary {
+    background: linear-gradient(135deg, #0078d7, #00a4f5);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0, 120, 215, 0.25);
+}
+
+.update-btn-primary:hover {
+    filter: brightness(1.08);
+}
+
+.update-btn-primary:disabled {
+    background: #ccc;
+    color: #666;
+    box-shadow: none;
+    cursor: not-allowed;
+    filter: none;
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

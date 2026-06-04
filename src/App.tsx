@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { getVersion } from "@tauri-apps/api/app";
 import { filesystem } from "./services/filesystem";
 import Sidebar from "./components/Sidebar";
 // import NoteList from "./components/NoteList"; // Removed
@@ -15,9 +16,11 @@ import SettingsModal from "./components/SettingsModal";
 import Onboarding from "./components/Onboarding";
 import InputModal from "./components/InputModal";
 import MenuBar from "./components/MenuBar";
+import UpdatePopup from "./components/UpdatePopup";
 import { useNotes } from "./hooks/useNotes";
 import { useAutosave } from "./hooks/useAutosave";
 import { settingsService, AutosaveSettings, ShortcutSettings } from "./services/settings";
+import { updaterService, UpdateInfo } from "./services/updater";
 import "./styles/global.css";
 
 import "./styles/resizer.css";
@@ -48,12 +51,37 @@ function App() {
     settingsService.loadShortcutSettings()
   );
 
+  // Auto Update settings
+  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState<boolean>(() =>
+    settingsService.loadAutoUpdateSettings()
+  );
+  const [activeUpdate, setActiveUpdate] = useState<UpdateInfo | null>(null);
+
   // Check Onboarding
   useEffect(() => {
     settingsService.hasSeenOnboarding().then(seen => {
       if (!seen) setShowOnboarding(true);
     });
   }, []);
+
+  // Check for updates on startup
+  useEffect(() => {
+    async function checkStartupUpdate() {
+      if (autoUpdateEnabled) {
+        try {
+          // Delay the check slightly to let the main app content render quickly
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const update = await updaterService.checkUpdate();
+          if (update) {
+            setActiveUpdate(update);
+          }
+        } catch (e) {
+          console.error("Auto update startup check failed:", e);
+        }
+      }
+    }
+    checkStartupUpdate();
+  }, [autoUpdateEnabled]);
 
   // Sidebar Resize State
   const [sidebarWidth, setSidebarWidth] = useState(250);
@@ -404,6 +432,29 @@ function App() {
     }
   };
 
+  // Handler for auto-update settings change
+  const handleAutoUpdateChange = (enabled: boolean) => {
+    setAutoUpdateEnabled(enabled);
+    settingsService.saveAutoUpdateSettings(enabled);
+  };
+
+  // Handler for manual update check
+  const handleManualCheckUpdate = async () => {
+    setIsSettingsOpen(false);
+    try {
+      const update = await updaterService.checkUpdate();
+      if (update) {
+        setActiveUpdate(update);
+      } else {
+        const currentVersion = await getVersion();
+        alert(`NoteX is up to date! (Version ${currentVersion})`);
+      }
+    } catch (e) {
+      console.error("Manual update check failed:", e);
+      alert("Failed to check for updates. Please check your internet connection.");
+    }
+  };
+
   // Sync shortcut settings on mount (in case user changed shortcut and reloaded)
   useEffect(() => {
     const syncShortcut = async () => {
@@ -699,6 +750,9 @@ function App() {
         onAutosaveChange={handleAutosaveChange}
         shortcutSettings={shortcutSettings}
         onShortcutChange={handleShortcutChange}
+        autoUpdateEnabled={autoUpdateEnabled}
+        onAutoUpdateChange={handleAutoUpdateChange}
+        onCheckUpdate={handleManualCheckUpdate}
       />
 
       <Onboarding
@@ -800,6 +854,13 @@ function App() {
           )}
         </div>
       </div>
+
+      {activeUpdate && (
+        <UpdatePopup
+          updateInfo={activeUpdate}
+          onClose={() => setActiveUpdate(null)}
+        />
+      )}
     </div>
   );
 }
