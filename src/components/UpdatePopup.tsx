@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { UpdateInfo, updaterService } from "../services/updater";
 import "../styles/update.css";
 
