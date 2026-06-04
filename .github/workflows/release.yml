@@ -2,46 +2,29 @@ name: 'Publish Multiplatform Release'
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
-  check-version:
+  create-release:
     runs-on: ubuntu-latest
-    outputs:
-      new_release: ${{ steps.check.outputs.new_release }}
-      version: ${{ steps.check.outputs.version }}
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Get Version from package.json
-        id: check
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "App version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
-          # Fetch remote tags to check if this tag exists
-          git fetch --tags
-          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            echo "Tag v$VERSION already exists. Skipping release build."
-            echo "new_release=false" >> $GITHUB_OUTPUT
-          else
-            echo "Tag v$VERSION does not exist. Creating tag and triggering release."
-            echo "new_release=true" >> $GITHUB_OUTPUT
-            
-            # Create and push tag
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag "v$VERSION"
-            git push origin "v$VERSION"
-          fi
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          generateReleaseNotes: true
+          tag: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
 
   build-release:
-    needs: check-version
-    if: needs.check-version.outputs.new_release == 'true'
+    needs: create-release
     permissions:
       contents: write
     strategy:
@@ -75,8 +58,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v${{ needs.check-version.outputs.version }}
-          releaseName: 'NoteX v${{ needs.check-version.outputs.version }}'
-          releaseBody: 'Automated release for NoteX v${{ needs.check-version.outputs.version }}. See files below.'
+          tagName: ${{ github.ref_name }}
+          releaseName: 'NoteX ${{ github.ref_name }}'
           releaseDraft: false
           prerelease: false
