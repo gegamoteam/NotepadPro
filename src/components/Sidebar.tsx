@@ -30,6 +30,9 @@ interface SidebarProps {
     onSortChange: (sort: 'date' | 'name' | 'modified') => void;
 
     isCollapsed?: boolean;
+
+    rootPath: string;
+    onCloseExternalNote?: (path: string) => void;
 }
 
 export default function Sidebar({
@@ -46,7 +49,9 @@ export default function Sidebar({
     onTogglePin,
     sortBy,
     onSortChange,
-    isCollapsed
+    isCollapsed,
+    rootPath,
+    onCloseExternalNote
 }: SidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item?: Note, items?: string[] } | null>(null);
@@ -273,6 +278,9 @@ export default function Sidebar({
                         ...((!contextMenu.items || contextMenu.items.length <= 1) && contextMenu.item ? [
                             { label: "separator", action: () => { }, separator: true },
                             { label: "Open in Folder", action: () => openInExplorer(contextMenu.item!.path) },
+                            ...(!contextMenu.item.path.toLowerCase().startsWith(rootPath.toLowerCase()) ? [
+                                { label: "Close File", action: () => onCloseExternalNote?.(contextMenu.item!.path) }
+                            ] : []),
                             { label: "Rename", action: () => openRenameModal(contextMenu.item!) },
                             {
                                 label: pinnedPaths.includes(contextMenu.item!.path) ? "Unpin" : "Pin",

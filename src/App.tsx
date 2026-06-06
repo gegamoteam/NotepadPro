@@ -188,15 +188,17 @@ function App() {
     isDirty,
     isSaving,
     sortBy,
-    setSortBy
+    setSortBy,
+    openedExternalNotes,
+    closeExternalNote
   } = useNotes(rootPath);
 
   const sidebarNotes = useMemo(() => {
-    if (activeNote && !fileSystemRoot.some(note => note.path === activeNote.path)) {
-      return [activeNote, ...fileSystemRoot];
-    }
-    return fileSystemRoot;
-  }, [fileSystemRoot, activeNote]);
+    const uniqueExternal = openedExternalNotes.filter(
+      ext => !fileSystemRoot.some(note => note.path === ext.path)
+    );
+    return [...uniqueExternal, ...fileSystemRoot];
+  }, [fileSystemRoot, openedExternalNotes]);
 
   const normalizeFilename = (filename: string, fallbackExtension: string) => {
     const trimmed = filename.trim();
@@ -798,6 +800,8 @@ function App() {
             onSortChange={setSortBy}
             isCollapsed={isCollapsed}
             onAdvancedSearch={() => setIsAdvSearchOpen(true)}
+            rootPath={rootPath}
+            onCloseExternalNote={closeExternalNote}
           />
         </div>
 

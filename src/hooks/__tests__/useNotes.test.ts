@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { useNotes } from "../useNotes";
 import { filesystem } from "../../services/filesystem";
@@ -79,5 +79,37 @@ describe("useNotes hook", () => {
         
         const newFile = result.current.fileSystemRoot.find(n => n.name === "new.txt");
         expect(newFile?.isNew).toBe(true);
+    });
+
+    it("handles external files correctly: keeps them in openedExternalNotes, and closes them", async () => {
+        const { result } = renderHook(() => useNotes("C:\\Notes"));
+
+        const externalNote = {
+            path: "D:\\External\\note.txt",
+            name: "note.txt",
+            isFolder: false,
+            lastModified: 100
+        };
+
+        const readNoteMock = vi.mocked(filesystem.readNote);
+        readNoteMock.mockResolvedValue("External content");
+
+        // Open external note
+        await act(async () => {
+            await result.current.openNote(externalNote);
+        });
+
+        expect(result.current.activeNote).toEqual(externalNote);
+        expect(result.current.activeNoteContent).toBe("External content");
+        expect(result.current.openedExternalNotes).toContainEqual(externalNote);
+
+        // Close external note
+        act(() => {
+            result.current.closeExternalNote(externalNote.path);
+        });
+
+        expect(result.current.activeNote).toBeNull();
+        expect(result.current.activeNoteContent).toBe("");
+        expect(result.current.openedExternalNotes).not.toContainEqual(externalNote);
     });
 });

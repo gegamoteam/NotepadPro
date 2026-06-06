@@ -18,6 +18,19 @@ export function useNotes(rootPath: string) {
     const knownPathsRef = useRef<Set<string>>(new Set());
     const hasLoadedRef = useRef(false);
 
+    const [openedExternalNotes, setOpenedExternalNotes] = useState<Note[]>(() => {
+        try {
+            const saved = localStorage.getItem("openedExternalNotes");
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        localStorage.setItem("openedExternalNotes", JSON.stringify(openedExternalNotes));
+    }, [openedExternalNotes]);
+
     // Sort state
     const [sortBy, setSortBy] = useState<'date' | 'name' | 'modified'>('modified');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -106,7 +119,11 @@ export function useNotes(rootPath: string) {
                 setHiddenPaths([]);
             }
         };
-        if (rootPath) loadHidden();
+        if (rootPath) {
+            loadHidden();
+            // Filter out files that are now inside the workspace
+            setOpenedExternalNotes(prev => prev.filter(note => !note.path.toLowerCase().startsWith(rootPath.toLowerCase())));
+        }
     }, [rootPath]); // Reload if rootPath changes
 
     // Save hidden paths helper
@@ -159,10 +176,22 @@ export function useNotes(rootPath: string) {
             setActiveNote(note);
             setActiveNoteContent(content);
             setIsDirty(false);
+
+            if (rootPath) {
+                const isExternal = !note.path.toLowerCase().startsWith(rootPath.toLowerCase());
+                if (isExternal) {
+                    setOpenedExternalNotes(prev => {
+                        if (prev.some(n => n.path === note.path)) {
+                            return prev;
+                        }
+                        return [note, ...prev];
+                    });
+                }
+            }
         } catch (error) {
             console.error("Failed to read note:", error);
         }
-    }, []);
+    }, [rootPath]);
 
     // Save active note
     const saveActiveNote = useCallback(async () => {
@@ -208,11 +237,18 @@ export function useNotes(rootPath: string) {
             if (activeNote?.path === oldPath) {
                 setActiveNote(prev => prev ? ({ ...prev, path: newPath, name: newName }) : null);
             }
+            setOpenedExternalNotes(prev => prev.map(n => {
+                if (n.path === oldPath) {
+                    const isInside = rootPath && newPath.toLowerCase().startsWith(rootPath.toLowerCase());
+                    return isInside ? null : { ...n, path: newPath, name: newName };
+                }
+                return n;
+            }).filter((n): n is Note => n !== null));
             await refreshNotes();
         } catch (e) {
             console.error(e);
         }
-    }, [activeNote, refreshNotes]);
+    }, [activeNote, refreshNotes, rootPath]);
 
     // Update content (from editor)
     const updateContent = useCallback(async (content: string) => {
@@ -294,12 +330,23 @@ export function useNotes(rootPath: string) {
             if (activeNote?.path === path) {
                 setActiveNote(null);
                 setActiveNoteContent("");
+                setIsDirty(false);
             }
+            setOpenedExternalNotes(prev => prev.filter(n => n.path !== path));
             await refreshNotes(updatedHiddenPaths);
         } catch (e) {
             console.error(e);
         }
     }, [activeNote, refreshNotes, hiddenPaths, rootPath]);
+
+    const closeExternalNote = useCallback((path: string) => {
+        setOpenedExternalNotes(prev => prev.filter(n => n.path !== path));
+        if (activeNote?.path === path) {
+            setActiveNote(null);
+            setActiveNoteContent("");
+            setIsDirty(false);
+        }
+    }, [activeNote]);
 
 
 
@@ -335,6 +382,8 @@ export function useNotes(rootPath: string) {
         sortDirection,
         setSortDirection,
         hiddenPaths, // Export
-        rootPath
+        rootPath,
+        openedExternalNotes,
+        closeExternalNote
     };
 }
