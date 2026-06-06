@@ -36,9 +36,12 @@ interface OsInfo {
 
 // Simple semver comparison helper
 export function isNewerVersion(current: string, latest: string): boolean {
-    const parse = (v: string) => v.replace(/^v/, '').split('.').map(Number);
-    const [cMajor, cMinor, cPatch] = parse(current);
-    const [lMajor, lMinor, lPatch] = parse(latest);
+    const parse = (v: string) => {
+        const clean = v.replace(/^v/, '').split('-')[0];
+        return clean.split('.').map(Number);
+    };
+    const [cMajor = 0, cMinor = 0, cPatch = 0] = parse(current);
+    const [lMajor = 0, lMinor = 0, lPatch = 0] = parse(latest);
 
     if (isNaN(cMajor) || isNaN(lMajor)) return false;
 
@@ -110,7 +113,9 @@ function matchAsset(assets: GitHubAsset[], os: string, arch: string): GitHubAsse
 export const updaterService = {
     async checkUpdate(): Promise<UpdateInfo | null> {
         try {
-            const response = await fetch(GITHUB_API_URL);
+            const response = await fetch(`${GITHUB_API_URL}?t=${Date.now()}`, {
+                cache: "no-store"
+            });
             if (!response.ok) {
                 throw new Error(`GitHub API returned status ${response.status}`);
             }

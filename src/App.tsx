@@ -17,6 +17,7 @@ import Onboarding from "./components/Onboarding";
 import InputModal from "./components/InputModal";
 import MenuBar from "./components/MenuBar";
 import UpdatePopup from "./components/UpdatePopup";
+import UpdateToast from "./components/UpdateToast";
 import { useNotes } from "./hooks/useNotes";
 import { useAutosave } from "./hooks/useAutosave";
 import { settingsService, AutosaveSettings, ShortcutSettings } from "./services/settings";
@@ -57,6 +58,8 @@ function App() {
     settingsService.loadAutoUpdateSettings()
   );
   const [activeUpdate, setActiveUpdate] = useState<UpdateInfo | null>(null);
+  const [appVersion, setAppVersion] = useState<string>("");
+  const [updateToast, setUpdateToast] = useState<UpdateInfo | null>(null);
 
   // Check Onboarding
   useEffect(() => {
@@ -65,23 +68,36 @@ function App() {
     });
   }, []);
 
-  // Check for updates on startup
+  // Get current app version on mount
   useEffect(() => {
-    async function checkStartupUpdate() {
-      if (autoUpdateEnabled) {
-        try {
-          // Delay the check slightly to let the main app content render quickly
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          const update = await updaterService.checkUpdate();
-          if (update) {
-            setActiveUpdate(update);
-          }
-        } catch (e) {
-          console.error("Auto update startup check failed:", e);
+    getVersion().then(setAppVersion);
+  }, []);
+
+  // Check for updates periodically
+  useEffect(() => {
+    if (!autoUpdateEnabled) return;
+
+    async function checkUpdate() {
+      try {
+        const update = await updaterService.checkUpdate();
+        if (update) {
+          setUpdateToast(update);
         }
+      } catch (e) {
+        console.error("Auto update check failed:", e);
       }
     }
-    checkStartupUpdate();
+
+    // Delay initial check by 2 seconds to keep startup fast
+    const startupTimeout = setTimeout(checkUpdate, 2000);
+
+    // Check every 15 minutes
+    const interval = setInterval(checkUpdate, 15 * 60 * 1000);
+
+    return () => {
+      clearTimeout(startupTimeout);
+      clearInterval(interval);
+    };
   }, [autoUpdateEnabled]);
 
   // Sidebar Resize State
@@ -756,6 +772,7 @@ function App() {
         autoUpdateEnabled={autoUpdateEnabled}
         onAutoUpdateChange={handleAutoUpdateChange}
         onCheckUpdate={handleManualCheckUpdate}
+        currentVersion={appVersion}
       />
 
       <Onboarding
@@ -855,6 +872,7 @@ function App() {
               line={cursor.line}
               col={cursor.col}
               isSaving={isSaving}
+              version={appVersion}
             />
           )}
         </div>
@@ -864,6 +882,17 @@ function App() {
         <UpdatePopup
           updateInfo={activeUpdate}
           onClose={() => setActiveUpdate(null)}
+        />
+      )}
+
+      {updateToast && (
+        <UpdateToast
+          updateInfo={updateToast}
+          onClose={() => setUpdateToast(null)}
+          onViewUpdate={() => {
+            setActiveUpdate(updateToast);
+            setUpdateToast(null);
+          }}
         />
       )}
     </div>

@@ -303,88 +303,69 @@ fn get_os_info() -> OsInfo {
     }
 }
 
-fn download_file_sync(url: &str, dest_path: &str) -> Result<(), String> {
-    #[cfg(target_os = "windows")]
-    {
-        // Try curl first (Win10 1803+ has curl.exe)
-        let status = std::process::Command::new("curl")
-            .args(&["-L", url, "-o", dest_path])
-            .status();
-        if status.is_ok() && status.unwrap().success() {
-            return Ok(());
+fn download_file_native(app: AppHandle, url: &str, dest_path: &str) -> Result<(), String> {
+    use std::io::{Read, Write};
+
+    let response = ureq::get(url)
+        .call()
+        .map_err(|e| format!("HTTP request failed: {}", e))?;
+
+    let total_size = response
+        .header("Content-Length")
+        .and_then(|val| val.parse::<u64>().ok())
+        .unwrap_or(0);
+
+    let mut reader = response.into_reader();
+    let mut file = std::fs::File::create(dest_path)
+        .map_err(|e| format!("Failed to create destination file: {}", e))?;
+
+    let mut buffer = [0; 8192];
+    let mut downloaded: u64 = 0;
+    let mut last_emit = std::time::Instant::now();
+
+    loop {
+        let bytes_read = reader.read(&mut buffer)
+            .map_err(|e| format!("Failed to read stream: {}", e))?;
+
+        if bytes_read == 0 {
+            break;
         }
-        // Fallback to PowerShell
-        let status_ps = std::process::Command::new("powershell")
-            .args(&[
-                "-NoProfile",
-                "-Command",
-                &format!(
-                    "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '{}' -OutFile '{}'",
-                    url, dest_path
-                )
-            ])
-            .status();
-        if status_ps.is_ok() && status_ps.unwrap().success() {
-            return Ok(());
+
+        file.write_all(&buffer[..bytes_read])
+            .map_err(|e| format!("Failed to write to file: {}", e))?;
+
+        downloaded += bytes_read as u64;
+
+        if last_emit.elapsed().as_millis() > 100 {
+            let pct = if total_size > 0 {
+                (downloaded as f64 / total_size as f64 * 100.0) as u32
+            } else {
+                0
+            };
+            let _ = app.emit("download-progress", pct);
+            last_emit = std::time::Instant::now();
         }
-        Err("Failed to download file using curl and powershell".to_string())
     }
 
-    #[cfg(not(target_os = "windows"))]
-    {
-        // Try curl first
-        let status = std::process::Command::new("curl")
-            .args(&["-L", url, "-o", dest_path])
-            .status();
-        if status.is_ok() && status.unwrap().success() {
-            return Ok(());
-        }
-        // Fallback to wget
-        let status_wget = std::process::Command::new("wget")
-            .args(&[url, "-O", dest_path])
-            .status();
-        if status_wget.is_ok() && status_wget.unwrap().success() {
-            return Ok(());
-        }
-        Err("Failed to download file using curl and wget".to_string())
-    }
+    file.flush().map_err(|e| e.to_string())?;
+    let _ = app.emit("download-progress", 100);
+
+    Ok(())
 }
 
 #[tauri::command]
-fn start_download(app: AppHandle, url: String, dest_path: String, total_size: u64) -> Result<(), String> {
+fn start_download(app: AppHandle, url: String, dest_path: String, _total_size: u64) -> Result<(), String> {
     std::thread::spawn(move || {
         let app_clone = app.clone();
         let dest_clone = dest_path.clone();
-        
-        let download_thread = std::thread::spawn(move || {
-            download_file_sync(&url, &dest_clone)
-        });
 
-        while !download_thread.is_finished() {
-            std::thread::sleep(std::time::Duration::from_millis(200));
-            if let Ok(metadata) = std::fs::metadata(&dest_path) {
-                let size = metadata.len();
-                let pct = if total_size > 0 {
-                    (size as f64 / total_size as f64 * 100.0) as u32
-                } else {
-                    0
-                };
-                let _ = app_clone.emit("download-progress", pct);
-            }
-        }
-
-        match download_thread.join() {
-            Ok(Ok(_)) => {
-                let _ = app_clone.emit("download-progress", 100);
+        match download_file_native(app.clone(), &url, &dest_clone) {
+            Ok(_) => {
                 let _ = app_clone.emit("download-complete", ());
             }
-            Ok(Err(e)) => {
-                let _ = std::fs::remove_file(&dest_path);
+            Err(e) => {
+                let _ = std::fs::remove_file(&dest_clone);
                 let _ = app_clone.emit("download-error", e);
-            }
-            Err(_) => {
-                let _ = std::fs::remove_file(&dest_path);
-                let _ = app_clone.emit("download-error", "Download thread panicked".to_string());
             }
         }
     });
@@ -395,13 +376,18 @@ fn start_download(app: AppHandle, url: String, dest_path: String, total_size: u6
 fn install_update(app: AppHandle, path: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+        const DETACHED_PROCESS: u32 = 0x00000008;
+
         if path.ends_with(".msi") {
             std::process::Command::new("msiexec")
                 .args(&["/i", &path])
+                .creation_flags(DETACHED_PROCESS)
                 .spawn()
                 .map_err(|e| e.to_string())?;
         } else {
             std::process::Command::new(&path)
+                .creation_flags(DETACHED_PROCESS)
                 .spawn()
                 .map_err(|e| e.to_string())?;
         }
@@ -415,15 +401,21 @@ fn install_update(app: AppHandle, path: String) -> Result<(), String> {
     }
     #[cfg(target_os = "linux")]
     {
-        if path.ends_with(".AppImage") {
+        if path.ends_with(".AppImage") || path.ends_with(".appimage") {
             let _ = std::process::Command::new("chmod")
                 .args(&["+x", &path])
                 .status();
+
+            std::process::Command::new("sh")
+                .args(&["-c", &format!("nohup \"{}\" >/dev/null 2>&1 &", path)])
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        } else {
+            std::process::Command::new("xdg-open")
+                .arg(&path)
+                .spawn()
+                .map_err(|e| e.to_string())?;
         }
-        std::process::Command::new("xdg-open")
-            .arg(&path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
     }
 
     app.exit(0);

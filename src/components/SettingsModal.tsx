@@ -18,13 +18,14 @@ interface SettingsModalProps {
     autoUpdateEnabled: boolean;
     onAutoUpdateChange: (enabled: boolean) => void;
     onCheckUpdate: () => void;
+    currentVersion: string;
 }
 
 export default function SettingsModal({
     isOpen, onClose, theme, onThemeChange, rootPath, onChangeRootPath,
     autosaveSettings, onAutosaveChange,
     shortcutSettings, onShortcutChange,
-    autoUpdateEnabled, onAutoUpdateChange, onCheckUpdate
+    autoUpdateEnabled, onAutoUpdateChange, onCheckUpdate, currentVersion
 }: SettingsModalProps) {
     const [isRecording, setIsRecording] = useState(false);
     const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
@@ -296,6 +297,10 @@ export default function SettingsModal({
                     {/* Application Updates */}
                     <div className="settings-section">
                         <h4>Application Updates</h4>
+                        <div className="settings-row">
+                            <label>Current Version</label>
+                            <span className="settings-value" style={{ fontFamily: 'monospace' }}>v{currentVersion}</span>
+                        </div>
                         <div className="settings-row">
                             <label>Auto-check for Updates</label>
                             <button
