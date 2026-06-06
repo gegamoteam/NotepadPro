@@ -406,10 +406,37 @@ fn install_update(app: AppHandle, path: String) -> Result<(), String> {
                 .args(&["+x", &path])
                 .status();
 
-            std::process::Command::new("sh")
-                .args(&["-c", &format!("nohup \"{}\" >/dev/null 2>&1 &", path)])
-                .spawn()
-                .map_err(|e| e.to_string())?;
+            if let Ok(current_exe) = std::env::current_exe() {
+                let backup_path = current_exe.with_extension("old");
+                // Rename current exe to backup to release the file handle
+                let _ = std::fs::rename(&current_exe, &backup_path);
+                // Copy new AppImage over the current exe path
+                if std::fs::copy(&path, &current_exe).is_ok() {
+                    // Make sure the replaced file is executable
+                    let _ = std::process::Command::new("chmod")
+                        .args(&["+x", &current_exe.to_string_lossy()])
+                        .status();
+                    // Spawn the updated app from its original location
+                    let current_exe_str = current_exe.to_string_lossy();
+                    let _ = std::process::Command::new("sh")
+                        .args(&["-c", &format!("nohup \"{}\" >/dev/null 2>&1 &", current_exe_str)])
+                        .spawn();
+                    // Clean up
+                    let _ = std::fs::remove_file(&path);
+                    let _ = std::fs::remove_file(&backup_path);
+                } else {
+                    // Fallback to spawning the downloaded one directly if copy failed
+                    let _ = std::process::Command::new("sh")
+                        .args(&["-c", &format!("nohup \"{}\" >/dev/null 2>&1 &", path)])
+                        .spawn();
+                }
+            } else {
+                // Fallback if current_exe cannot be determined
+                std::process::Command::new("sh")
+                    .args(&["-c", &format!("nohup \"{}\" >/dev/null 2>&1 &", path)])
+                    .spawn()
+                    .map_err(|e| e.to_string())?;
+            }
         } else {
             std::process::Command::new("xdg-open")
                 .arg(&path)
