@@ -20,3 +20,11 @@ export const getParentPath = (path: string): string => {
 export const getFilename = (path: string): string => {
     return path.split(/[/\\]/).pop() || path;
 };
+
+export const isSubpath = (parent: string, child: string): boolean => {
+    if (!parent || !child) return false;
+    const p = parent.replace(/[/\\]/g, '/').toLowerCase();
+    const c = child.replace(/[/\\]/g, '/').toLowerCase();
+    const pNormalized = p.endsWith('/') ? p : p + '/';
+    return c === p || c.startsWith(pNormalized);
+};

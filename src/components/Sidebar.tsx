@@ -7,6 +7,7 @@ import { ArrowUpDown, Search, Plus } from "lucide-react";
 import { RichItem } from "./RichItem";
 import { handleSelection } from "../utils/selection";
 import { filesystem } from "../services/filesystem";
+import { isSubpath } from "../utils/paths";
 
 interface SidebarProps {
     notes: Note[];
@@ -278,7 +279,7 @@ export default function Sidebar({
                         ...((!contextMenu.items || contextMenu.items.length <= 1) && contextMenu.item ? [
                             { label: "separator", action: () => { }, separator: true },
                             { label: "Open in Folder", action: () => openInExplorer(contextMenu.item!.path) },
-                            ...(!contextMenu.item.path.toLowerCase().startsWith(rootPath.toLowerCase()) ? [
+                            ...(!isSubpath(rootPath, contextMenu.item.path) ? [
                                 { label: "Close File", action: () => onCloseExternalNote?.(contextMenu.item!.path) }
                             ] : []),
                             { label: "Rename", action: () => openRenameModal(contextMenu.item!) },

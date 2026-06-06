@@ -21,6 +21,7 @@ import { useNotes } from "./hooks/useNotes";
 import { useAutosave } from "./hooks/useAutosave";
 import { settingsService, AutosaveSettings, ShortcutSettings } from "./services/settings";
 import { updaterService, UpdateInfo } from "./services/updater";
+import { isSubpath } from "./utils/paths";
 import "./styles/global.css";
 
 import "./styles/resizer.css";
@@ -260,7 +261,7 @@ function App() {
       const selected = await filesystem.saveFileDialog(activeNote.name);
       if (selected) {
         await filesystem.writeNote(selected, activeNoteContent);
-        const isInsideWorkspace = selected.toLowerCase().startsWith(rootPath.toLowerCase());
+        const isInsideWorkspace = isSubpath(rootPath, selected);
         if (isInsideWorkspace) {
           await _refreshNotes();
           const name = selected.split(/[/\\]/).pop() || selected;

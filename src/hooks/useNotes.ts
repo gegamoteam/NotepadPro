@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { Note } from "../types/note";
 import { filesystem } from "../services/filesystem";
 import { settingsService } from "../services/settings";
-import { joinPath, getParentPath, getFilename } from "../utils/paths";
+import { joinPath, getParentPath, getFilename, isSubpath } from "../utils/paths";
 
 export function useNotes(rootPath: string) {
     const [activeNote, setActiveNote] = useState<Note | null>(null);
@@ -122,7 +122,7 @@ export function useNotes(rootPath: string) {
         if (rootPath) {
             loadHidden();
             // Filter out files that are now inside the workspace
-            setOpenedExternalNotes(prev => prev.filter(note => !note.path.toLowerCase().startsWith(rootPath.toLowerCase())));
+            setOpenedExternalNotes(prev => prev.filter(note => !isSubpath(rootPath, note.path)));
         }
     }, [rootPath]); // Reload if rootPath changes
 
@@ -178,7 +178,7 @@ export function useNotes(rootPath: string) {
             setIsDirty(false);
 
             if (rootPath) {
-                const isExternal = !note.path.toLowerCase().startsWith(rootPath.toLowerCase());
+                const isExternal = !isSubpath(rootPath, note.path);
                 if (isExternal) {
                     setOpenedExternalNotes(prev => {
                         if (prev.some(n => n.path === note.path)) {
@@ -239,7 +239,7 @@ export function useNotes(rootPath: string) {
             }
             setOpenedExternalNotes(prev => prev.map(n => {
                 if (n.path === oldPath) {
-                    const isInside = rootPath && newPath.toLowerCase().startsWith(rootPath.toLowerCase());
+                    const isInside = isSubpath(rootPath, newPath);
                     return isInside ? null : { ...n, path: newPath, name: newName };
                 }
                 return n;
