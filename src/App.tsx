@@ -25,7 +25,7 @@ import { useAutosave } from "./hooks/useAutosave";
 import { settingsService, AutosaveSettings, ShortcutSettings } from "./services/settings";
 import { updaterService, UpdateInfo } from "./services/updater";
 import { isSubpath } from "./utils/paths";
-import { AuthUser, isSignedIn, loadToken } from "./services/authService";
+import { AuthUser, isSignedIn, loadToken, storeToken } from "./services/authService";
 import { upsertCloudNote, CloudNote } from "./services/cloudApi";
 import "./styles/global.css";
 
@@ -71,6 +71,31 @@ function App() {
   // Map of localNotePath → CloudNote (so we remember cloud IDs per file)
   const [cloudNoteMap, setCloudNoteMap] = useState<Record<string, CloudNote>>({});
 
+  const handleDeepLinkUrl = useCallback(async (url: string) => {
+    if (!url.startsWith("notex://auth")) return;
+    try {
+      const urlObj = new URL(url);
+      const params = new URLSearchParams(urlObj.search);
+      const token = params.get("token");
+      const id = params.get("id");
+      const name = params.get("name");
+      const email = params.get("email");
+
+      if (token && id && email) {
+        await storeToken(token);
+        const user: AuthUser = {
+          id,
+          name: name || email.split("@")[0] || "NoteX User",
+          email,
+        };
+        setCloudUser(user);
+        setIsAuthModalOpen(false);
+      }
+    } catch (err) {
+      console.error("Failed to parse deep link:", err);
+    }
+  }, []);
+
   // Restore cloud user on mount if a token is present
   useEffect(() => {
     isSignedIn().then(async (signedIn) => {
@@ -90,7 +115,23 @@ function App() {
         // Malformed token on disk — ignore, user just won't be shown as signed in
       }
     });
-  }, []);
+
+    // Listen to deep-link events from single instance callbacks
+    const unlistenPromise = listen<string>("deep-link", (event) => {
+      handleDeepLinkUrl(event.payload);
+    });
+
+    // Check if app was launched with a deep link
+    invoke<string | null>("get_startup_deep_link").then((startupDeepLink) => {
+      if (startupDeepLink) {
+        handleDeepLinkUrl(startupDeepLink);
+      }
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, [handleDeepLinkUrl]);
 
   // Check Onboarding
   useEffect(() => {

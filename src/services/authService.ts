@@ -33,6 +33,10 @@ export const BACKEND_API_URL =
   import.meta.env.VITE_BACKEND_API_URL ||
   "https://notex-backend.gegamo.xyz"; // update once deployed
 
+export const SITE_URL =
+  import.meta.env.VITE_SITE_URL ||
+  "http://localhost:3000";
+
 // ─── Token Storage (via Tauri command) ─────────────────────────────────────
 
 const TOKEN_FILE_KEY = "cloud_auth_token";
@@ -140,4 +144,18 @@ export async function signOut(): Promise<void> {
 export async function isSignedIn(): Promise<boolean> {
   const token = await loadToken();
   return token !== null;
+}
+
+/** Decode AuthUser object from public claims of JWT */
+export function decodeUserFromToken(token: string): AuthUser | null {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return {
+      id: payload.sub || "",
+      name: payload.name || payload.email || "NoteX User",
+      email: payload.email || "",
+    };
+  } catch {
+    return null;
+  }
 }

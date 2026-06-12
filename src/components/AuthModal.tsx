@@ -1,17 +1,13 @@
 /**
  * AuthModal.tsx
  *
- * Login / logout modal for the NoteX desktop app.
+ * Browser-based login / logout modal for the NoteX desktop app.
  * Shown when the user clicks the "Sign in to Cloud" button.
- *
- * On successful sign-in the token is saved to the secure store via
- * authService.signIn() → Tauri command store_secure_value().
- *
- * Design: clean, minimal, dark-mode-aware — matches the existing NoteX UI.
  */
 
 import { useState } from "react";
-import { signIn, signOut, AuthUser } from "../services/authService";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { signOut, AuthUser, SITE_URL } from "../services/authService";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -26,26 +22,20 @@ export default function AuthModal({
   currentUser,
   onAuthChange,
 }: AuthModalProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   if (!isOpen) return null;
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleBrowserSignIn = async () => {
     setError("");
     setLoading(true);
     try {
-      const { user } = await signIn(email, password);
-      onAuthChange(user);
-      setEmail("");
-      setPassword("");
-      onClose();
+      // Open the browser to the app-auth endpoint
+      await openUrl(`${SITE_URL}/app-auth`);
+      // Keep loading state until deep link redirect triggers login or modal is closed
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Sign-in failed.");
-    } finally {
+      setError(err instanceof Error ? err.message : "Failed to open browser.");
       setLoading(false);
     }
   };
@@ -114,54 +104,11 @@ export default function AuthModal({
               </button>
             </div>
           ) : (
-            /* ── Sign-in form ── */
-            <form onSubmit={handleSignIn} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, #888)" }}>
-                Sign in with your NoteX account to sync and share notes from any device.
+            /* ── Sign-in with Browser view ── */
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, #888)", lineHeight: "1.4" }}>
+                Authenticate securely through the NoteX website to enable cloud sync and sharing.
               </p>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ fontSize: 11, color: "var(--text-secondary)" }}>Email</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  disabled={loading}
-                  style={{
-                    padding: "7px 10px",
-                    borderRadius: 6,
-                    border: "1px solid var(--border-color)",
-                    background: "var(--editor-bg)",
-                    color: "var(--text-color)",
-                    fontSize: 13,
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ fontSize: 11, color: "var(--text-secondary)" }}>Password</label>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  disabled={loading}
-                  style={{
-                    padding: "7px 10px",
-                    borderRadius: 6,
-                    border: "1px solid var(--border-color)",
-                    background: "var(--editor-bg)",
-                    color: "var(--text-color)",
-                    fontSize: 13,
-                    outline: "none",
-                  }}
-                />
-              </div>
 
               {error && (
                 <div
@@ -179,10 +126,9 @@ export default function AuthModal({
               )}
 
               <button
-                type="submit"
+                onClick={handleBrowserSignIn}
                 disabled={loading}
                 style={{
-                  marginTop: 2,
                   padding: "9px 0",
                   background: "var(--accent, #2563eb)",
                   color: "#fff",
@@ -190,13 +136,17 @@ export default function AuthModal({
                   borderRadius: 6,
                   fontSize: 13,
                   fontWeight: 600,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  opacity: loading ? 0.8 : 1,
                 }}
               >
-                {loading ? "Signing in…" : "Sign in"}
+                {loading ? "Opening Browser..." : "Sign in with NoteX Website"}
               </button>
-            </form>
+            </div>
           )}
         </div>
       </div>

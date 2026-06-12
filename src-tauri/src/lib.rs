@@ -9,6 +9,7 @@ use tauri::{
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
     WindowEvent,
 };
+use tauri_plugin_deep_link::DeepLinkExt;
 
 struct WatcherState(Mutex<Option<RecommendedWatcher>>);
 
@@ -294,6 +295,14 @@ fn get_startup_file(state: State<'_, StartupFile>) -> Result<Option<String>, Str
     Ok(guard.take())
 }
 
+struct StartupDeepLink(Mutex<Option<String>>);
+
+#[tauri::command]
+fn get_startup_deep_link(state: State<'_, StartupDeepLink>) -> Result<Option<String>, String> {
+    let mut guard = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(guard.take())
+}
+
 #[derive(Serialize)]
 struct OsInfo {
     os: &'static str,
@@ -541,13 +550,21 @@ fn get_file_from_args(args: &[String]) -> Option<String> {
 pub fn run() {
     let args: Vec<String> = std::env::args().collect();
     let startup_file = get_file_from_args(&args);
+    let startup_deep_link = args.iter().find(|arg| arg.starts_with("notex://")).cloned();
 
     tauri::Builder::default()
         .manage(WatcherState(Mutex::new(None)))
         .manage(ShortcutStore(Mutex::new(None)))
         .manage(StartupFile(Mutex::new(startup_file)))
+        .manage(StartupDeepLink(Mutex::new(startup_deep_link)))
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            for arg in &args {
+                if arg.starts_with("notex://") {
+                    let _ = app.emit("deep-link", arg.clone());
+                }
+            }
             if let Some(file_path) = get_file_from_args(&args) {
                 let _ = app.emit("open-external-file", file_path);
             }
@@ -615,6 +632,9 @@ pub fn run() {
                 *guard = Some("Ctrl+Shift+N".to_string());
             }
 
+            #[cfg(desktop)]
+            let _ = app.deep_link().register("notex");
+
             Ok(())
         })
         .on_window_event(|window, event| match event {
@@ -640,6 +660,7 @@ pub fn run() {
             open_file_dialog,
             save_file_dialog,
             get_startup_file,
+            get_startup_deep_link,
             get_os_info,
             start_download,
             install_update,
