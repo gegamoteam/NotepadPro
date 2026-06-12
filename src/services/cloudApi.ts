@@ -36,11 +36,9 @@ export interface ShareResult {
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await loadToken();
   if (!token) throw new Error("Not signed in");
-  const clientToken = import.meta.env.VITE_CLIENT_TOKEN || "";
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
-    "X-Client-Token": clientToken,
   };
 }
 

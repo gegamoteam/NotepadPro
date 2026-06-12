@@ -87,13 +87,9 @@ export async function signIn(
 ): Promise<{ user: AuthUser; token: string }> {
   const url = `${NEON_AUTH_BASE_URL}/sign-in/email`;
 
-  const clientToken = import.meta.env.VITE_CLIENT_TOKEN || "";
   const response = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Client-Token": clientToken,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
 

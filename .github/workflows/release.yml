@@ -92,7 +92,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VITE_CLIENT_TOKEN: ${{ secrets.CLIENT_TOKEN }}
         with:
           tagName: v${{ needs.check-version.outputs.version }}
           releaseName: 'NoteX v${{ needs.check-version.outputs.version }}'
