@@ -92,27 +92,6 @@ function App() {
     });
   }, []);
 
-  // Auto-sync active note to cloud when content is saved (only if signed in)
-  // Debounced — fires 3 seconds after the last save to avoid hammering the API.
-  useEffect(() => {
-    if (!cloudUser || !activeNote || !activeNote.path) return;
-    const timer = setTimeout(async () => {
-      try {
-        const existing = cloudNoteMap[activeNote.path];
-        const saved = await upsertCloudNote({
-          id: existing?.id,
-          title: activeNote.name,
-          content: activeNoteContent,
-        });
-        setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: saved }));
-      } catch (e) {
-        // Non-fatal: local file is always the source of truth
-        console.warn("Cloud sync failed (non-fatal):", e);
-      }
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [cloudUser, activeNote, activeNoteContent]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Check Onboarding
   useEffect(() => {
     settingsService.hasSeenOnboarding().then(seen => {
@@ -261,6 +240,27 @@ function App() {
     openedExternalNotes,
     closeExternalNote
   } = useNotes(rootPath);
+
+  // Auto-sync active note to cloud when content is saved (only if signed in)
+  // Debounced — fires 3 seconds after the last save to avoid hammering the API.
+  useEffect(() => {
+    if (!cloudUser || !activeNote || !activeNote.path) return;
+    const timer = setTimeout(async () => {
+      try {
+        const existing = cloudNoteMap[activeNote.path];
+        const saved = await upsertCloudNote({
+          id: existing?.id,
+          title: activeNote.name,
+          content: activeNoteContent,
+        });
+        setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: saved }));
+      } catch (e) {
+        // Non-fatal: local file is always the source of truth
+        console.warn("Cloud sync failed (non-fatal):", e);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [cloudUser, activeNote, activeNoteContent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sidebarNotes = useMemo(() => {
     const uniqueExternal = openedExternalNotes.filter(
