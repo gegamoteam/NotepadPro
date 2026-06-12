@@ -18,11 +18,15 @@ import InputModal from "./components/InputModal";
 import MenuBar from "./components/MenuBar";
 import UpdatePopup from "./components/UpdatePopup";
 import UpdateToast from "./components/UpdateToast";
+import AuthModal from "./components/AuthModal";
+import ShareButton from "./components/ShareButton";
 import { useNotes } from "./hooks/useNotes";
 import { useAutosave } from "./hooks/useAutosave";
 import { settingsService, AutosaveSettings, ShortcutSettings } from "./services/settings";
 import { updaterService, UpdateInfo } from "./services/updater";
 import { isSubpath } from "./utils/paths";
+import { AuthUser, isSignedIn, loadToken } from "./services/authService";
+import { upsertCloudNote, CloudNote } from "./services/cloudApi";
 import "./styles/global.css";
 
 import "./styles/resizer.css";
@@ -60,6 +64,54 @@ function App() {
   const [activeUpdate, setActiveUpdate] = useState<UpdateInfo | null>(null);
   const [appVersion, setAppVersion] = useState<string>("");
   const [updateToast, setUpdateToast] = useState<UpdateInfo | null>(null);
+
+  // ── Cloud Auth & Sharing state ──────────────────────────────────────────
+  const [cloudUser, setCloudUser] = useState<AuthUser | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  // Map of localNotePath → CloudNote (so we remember cloud IDs per file)
+  const [cloudNoteMap, setCloudNoteMap] = useState<Record<string, CloudNote>>({});
+
+  // Restore cloud user on mount if a token is present
+  useEffect(() => {
+    isSignedIn().then(async (signedIn) => {
+      if (!signedIn) return;
+      // We don't store the user object separately; decode a lightweight
+      // representation from the JWT payload (public info only, no signature needed here)
+      const token = await loadToken();
+      if (!token) return;
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        setCloudUser({
+          id: payload.sub || "",
+          name: payload.name || payload.email || "NoteX User",
+          email: payload.email || "",
+        });
+      } catch {
+        // Malformed token on disk — ignore, user just won't be shown as signed in
+      }
+    });
+  }, []);
+
+  // Auto-sync active note to cloud when content is saved (only if signed in)
+  // Debounced — fires 3 seconds after the last save to avoid hammering the API.
+  useEffect(() => {
+    if (!cloudUser || !activeNote || !activeNote.path) return;
+    const timer = setTimeout(async () => {
+      try {
+        const existing = cloudNoteMap[activeNote.path];
+        const saved = await upsertCloudNote({
+          id: existing?.id,
+          title: activeNote.name,
+          content: activeNoteContent,
+        });
+        setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: saved }));
+      } catch (e) {
+        // Non-fatal: local file is always the source of truth
+        console.warn("Cloud sync failed (non-fatal):", e);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [cloudUser, activeNote, activeNoteContent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check Onboarding
   useEffect(() => {
@@ -691,6 +743,8 @@ function App() {
 
   if (!rootPath) return <div>Loading...</div>;
 
+  const activeCloudNote = activeNote ? (cloudNoteMap[activeNote.path] ?? null) : null;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", overflow: "hidden" }}>
       <MenuBar
@@ -773,6 +827,14 @@ function App() {
         onAutoUpdateChange={handleAutoUpdateChange}
         onCheckUpdate={handleManualCheckUpdate}
         currentVersion={appVersion}
+      />
+
+      {/* Cloud Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={cloudUser}
+        onAuthChange={setCloudUser}
       />
 
       <Onboarding
@@ -873,7 +935,37 @@ function App() {
               col={cursor.col}
               isSaving={isSaving}
               version={appVersion}
-            />
+            >
+              {/* Cloud status: sign-in button or sharing controls */}
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
+                {cloudUser ? (
+                  <>
+                    <span
+                      style={{ fontSize: 10, color: "var(--text-secondary, #888)", cursor: "pointer" }}
+                      onClick={() => setIsAuthModalOpen(true)}
+                      title={`Signed in as ${cloudUser.email}`}
+                    >
+                      ☁ {cloudUser.name.split(" ")[0]}
+                    </span>
+                    <ShareButton
+                      cloudNote={activeCloudNote}
+                      onNoteUpdate={(updated) =>
+                        activeNote &&
+                        setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: updated }))
+                      }
+                    />
+                  </>
+                ) : (
+                  <span
+                    style={{ fontSize: 10, color: "var(--text-secondary, #888)", cursor: "pointer" }}
+                    onClick={() => setIsAuthModalOpen(true)}
+                    title="Sign in to enable cloud sync and sharing"
+                  >
+                    ☁ Sign in
+                  </span>
+                )}
+              </span>
+            </StatusBar>
           )}
         </div>
       </div>

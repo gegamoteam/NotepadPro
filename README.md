@@ -22,7 +22,7 @@ WARNING!!, Currently i didnt implement adding to PATH on the installer, you will
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.6.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.8.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/tauri-v2-orange.svg" alt="Tauri V2">
   <img src="https://img.shields.io/badge/react-19-61dafb.svg" alt="React 19">

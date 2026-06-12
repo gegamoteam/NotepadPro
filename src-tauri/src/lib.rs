@@ -3,7 +3,12 @@ use std::fs;
 use std::time::SystemTime;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use std::sync::Mutex;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
+    WindowEvent,
+};
 
 struct WatcherState(Mutex<Option<RecommendedWatcher>>);
 
@@ -450,11 +455,67 @@ fn install_update(app: AppHandle, path: String) -> Result<(), String> {
 }
 
 
-use tauri::{
-    menu::{Menu, MenuItem},
-    tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    Manager, WindowEvent,
-};
+// ─── Secure Value Storage ────────────────────────────────────────────────────
+// Stores small values (like JWTs) in a JSON file inside the app's dedicated
+// data directory. On all OSes this directory is only accessible to the current
+// user (Windows: %APPDATA%\com.theo.notex, Linux: ~/.local/share/com.theo.notex).
+
+/// Store a value keyed by `key` in the app's secure data directory.
+/// Passing `null` / None deletes the key.
+#[tauri::command]
+fn store_secure_value(
+    app: AppHandle,
+    key: String,
+    value: Option<String>,
+) -> Result<(), String> {
+    let path = secure_store_path(&app)?;
+    let mut map = load_secure_store(&path);
+
+    match value {
+        Some(v) => { map.insert(key, v); }
+        None    => { map.remove(&key); }
+    }
+
+    let serialized = serde_json::to_string(&map).map_err(|e| e.to_string())?;
+    // Write atomically via a temp file then rename
+    let tmp_path = path.with_extension("tmp");
+    fs::write(&tmp_path, serialized).map_err(|e| e.to_string())?;
+    fs::rename(&tmp_path, &path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Load a value by `key` from the secure store. Returns None if not found.
+#[tauri::command]
+fn load_secure_value(
+    app: AppHandle,
+    key: String,
+) -> Result<Option<String>, String> {
+    let path = secure_store_path(&app)?;
+    let map = load_secure_store(&path);
+    Ok(map.get(&key).cloned())
+}
+
+fn secure_store_path(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
+    Ok(data_dir.join("secure_store.json"))
+}
+
+fn load_secure_store(
+    path: &std::path::PathBuf,
+) -> std::collections::HashMap<String, String> {
+    fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+
 
 fn get_file_from_args(args: &[String]) -> Option<String> {
     for arg in args.iter().skip(1) {
@@ -581,7 +642,9 @@ pub fn run() {
             get_startup_file,
             get_os_info,
             start_download,
-            install_update
+            install_update,
+            store_secure_value,
+            load_secure_value
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
