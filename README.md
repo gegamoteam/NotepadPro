@@ -22,11 +22,15 @@ WARNING!!, Currently i didnt implement adding to PATH on the installer, you will
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.8.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.8.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/tauri-v2-orange.svg" alt="Tauri V2">
   <img src="https://img.shields.io/badge/react-19-61dafb.svg" alt="React 19">
 </p>
+
+> [!NOTE]
+> **Forking & Personalization**
+> Feel free to fork and make the UI feel like yours! But please don't skid. :)
 
 ---
 
@@ -168,7 +172,7 @@ Contributions are welcome! Here's how you can help:
 - [ ] Multi-tab support
 - [ ] Theme customization (dark/light modes)
 - [ ] Export to PDF
-- [ ] Cloud sync (optional)
+- [x] Cloud sync & public note sharing (v1.8.1)
 - [ ] Plugin system
 
 ---
