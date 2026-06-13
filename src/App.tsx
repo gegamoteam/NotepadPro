@@ -281,11 +281,12 @@ function App() {
     closeExternalNote
   } = useNotes(rootPath);
 
-  // Auto-sync active note to cloud when content is saved (only if signed in)
-  // Debounced — fires 3 seconds after the last save to avoid hammering the API.
+  // Auto-sync active note to cloud when it is opened or saved (only if signed in)
   useEffect(() => {
     if (!cloudUser || !activeNote || !activeNote.path) return;
-    const timer = setTimeout(async () => {
+    
+    // Sync immediately upon note select/change or save
+    const syncNote = async () => {
       try {
         const existing = cloudNoteMap[activeNote.path];
         const saved = await upsertCloudNote({
@@ -295,12 +296,13 @@ function App() {
         });
         setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: saved }));
       } catch (e) {
-        // Non-fatal: local file is always the source of truth
         console.warn("Cloud sync failed (non-fatal):", e);
       }
-    }, 500);
+    };
+    
+    const timer = setTimeout(syncNote, 500);
     return () => clearTimeout(timer);
-  }, [cloudUser, activeNote, activeNoteContent]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cloudUser, activeNote?.path, activeNoteContent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sidebarNotes = useMemo(() => {
     const uniqueExternal = openedExternalNotes.filter(
