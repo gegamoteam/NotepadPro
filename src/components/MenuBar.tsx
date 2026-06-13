@@ -42,6 +42,7 @@ interface MenuBarProps {
     onSignInClick: () => void;
     cloudNote: any | null;
     canShare: boolean;
+    onEnsureCloudNote: () => Promise<any | null>;
     onNoteUpdate: (updated: any) => void;
 }
 
@@ -248,6 +249,7 @@ export default function MenuBar(props: MenuBarProps) {
                             <ShareButton
                                 cloudNote={props.cloudNote}
                                 canShare={props.canShare}
+                                onEnsureCloudNote={props.onEnsureCloudNote}
                                 onNoteUpdate={props.onNoteUpdate}
                             />
                         </div>

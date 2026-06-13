@@ -5,10 +5,11 @@ import { enableSharing, disableSharing, CloudNote } from "../services/cloudApi";
 interface ShareButtonProps {
   cloudNote: CloudNote | null;
   canShare: boolean;
+  onEnsureCloudNote: () => Promise<CloudNote | null>;
   onNoteUpdate: (updated: CloudNote) => void;
 }
 
-export default function ShareButton({ cloudNote, canShare, onNoteUpdate }: ShareButtonProps) {
+export default function ShareButton({ cloudNote, canShare, onEnsureCloudNote, onNoteUpdate }: ShareButtonProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,18 +40,44 @@ export default function ShareButton({ cloudNote, canShare, onNoteUpdate }: Share
     window.setTimeout(() => setError(""), 3000);
   };
 
-  const handleEnableSharing = async () => {
-    if (!canShare || !cloudNote) {
-      showError(disabledReason || "Please wait, note is syncing to cloud...");
+  const ensureNoteForSharing = async () => {
+    if (!canShare) {
+      showError(disabledReason);
+      return null;
+    }
+
+    if (cloudNote) return cloudNote;
+
+    setLoading(true);
+    setError("");
+    try {
+      const synced = await onEnsureCloudNote();
+      if (!synced) {
+        showError("Could not sync this note. Sign in and try again.");
+        return null;
+      }
+      onNoteUpdate(synced);
+      return synced;
+    } catch (err: unknown) {
+      showError(err instanceof Error ? err.message : "Failed to sync this note.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnableSharing = async (noteOverride?: CloudNote | null) => {
+    const note = noteOverride ?? (await ensureNoteForSharing());
+    if (!note) {
       return;
     }
 
     setLoading(true);
     setError("");
     try {
-      const result = await enableSharing(cloudNote.id);
+      const result = await enableSharing(note.id);
       onNoteUpdate({
-        ...cloudNote,
+        ...note,
         is_public: true,
         share_token: result.share_token,
         share_url: result.share_url,
@@ -67,14 +94,15 @@ export default function ShareButton({ cloudNote, canShare, onNoteUpdate }: Share
   };
 
   const handleDisableSharing = async () => {
-    if (!cloudNote) return;
+    const note = await ensureNoteForSharing();
+    if (!note) return;
 
     setLoading(true);
     setError("");
     try {
-      await disableSharing(cloudNote.id);
+      await disableSharing(note.id);
       onNoteUpdate({
-        ...cloudNote,
+        ...note,
         is_public: false,
         share_token: null,
         share_url: null,
@@ -103,8 +131,12 @@ export default function ShareButton({ cloudNote, canShare, onNoteUpdate }: Share
         disabled={loading || !canShare}
         title={disabledReason || (isPublic ? cloudNote?.share_url ?? "Public note" : "Share this note")}
         onClick={() => {
-          if (!cloudNote) {
-            handleEnableSharing();
+          if (!canShare) {
+            showError(disabledReason);
+            return;
+          }
+          if (!cloudNote || !isPublic) {
+            handleEnableSharing(cloudNote);
             return;
           }
           setOpen((value) => !value);
@@ -130,7 +162,7 @@ export default function ShareButton({ cloudNote, canShare, onNoteUpdate }: Share
             type="button"
             className="share-menu-item"
             disabled={loading || isPublic}
-            onClick={handleEnableSharing}
+            onClick={() => handleEnableSharing()}
           >
             <Globe2 className="share-menu-icon" />
             <span>Public</span>

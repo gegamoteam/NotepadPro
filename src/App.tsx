@@ -282,19 +282,31 @@ function App() {
   } = useNotes(rootPath);
 
   // Auto-sync active note to cloud when it is opened or saved (only if signed in)
+  const syncActiveNoteToCloud = useCallback(async (): Promise<CloudNote | null> => {
+    if (!cloudUser || !activeNote || !activeNote.path) {
+      throw new Error("Sign in and open a note before sharing.");
+    }
+    if (!isShareableNoteName(activeNote.name)) {
+      throw new Error("Only .md and .txt notes can be shared.");
+    }
+
+    const existing = cloudNoteMap[activeNote.path];
+    const saved = await upsertCloudNote({
+      id: existing?.id,
+      title: activeNote.name,
+      content: activeNoteContent,
+    });
+    setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: saved }));
+    return saved;
+  }, [cloudUser, activeNote, activeNoteContent, cloudNoteMap]);
+
   useEffect(() => {
     if (!cloudUser || !activeNote || !activeNote.path || !isShareableNoteName(activeNote.name)) return;
     
     // Sync immediately upon note select/change or save
     const syncNote = async () => {
       try {
-        const existing = cloudNoteMap[activeNote.path];
-        const saved = await upsertCloudNote({
-          id: existing?.id,
-          title: activeNote.name,
-          content: activeNoteContent,
-        });
-        setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: saved }));
+        await syncActiveNoteToCloud();
       } catch (e) {
         console.warn("Cloud sync failed (non-fatal):", e);
       }
@@ -857,6 +869,7 @@ function App() {
         onSignInClick={() => setIsAuthModalOpen(true)}
         cloudNote={activeCloudNote}
         canShare={!!activeNote && activeNoteIsShareable}
+        onEnsureCloudNote={syncActiveNoteToCloud}
         onNoteUpdate={(updated) =>
           activeNote &&
           setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: updated }))
