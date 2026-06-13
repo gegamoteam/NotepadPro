@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import ShareButton from "./ShareButton";
 import "../styles/menubar.css";
 
 interface MenuBarProps {
@@ -37,6 +38,10 @@ interface MenuBarProps {
     onZoomOut: () => void;
     onRestoreZoom: () => void;
     onSettings: () => void; // New
+    cloudUser: { id: string; name: string; email: string } | null;
+    onSignInClick: () => void;
+    cloudNote: any | null;
+    onNoteUpdate: (updated: any) => void;
 }
 
 export default function MenuBar(props: MenuBarProps) {
@@ -213,6 +218,55 @@ export default function MenuBar(props: MenuBarProps) {
 
             <div className="menu-item" onClick={props.onSettings}>
                 <div className="menu-label">Settings</div>
+            </div>
+
+            {/* Right side Cloud Auth & Share Controls */}
+            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, paddingRight: 8 }}>
+                {props.cloudUser ? (
+                    <>
+                        <button
+                            onClick={props.onSignInClick}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: "3px 8px",
+                                borderRadius: 4,
+                                fontSize: 11,
+                                cursor: "pointer",
+                                border: "1px solid var(--border-color)",
+                                background: "var(--sidebar-active)",
+                                color: "var(--accent-color)",
+                                fontWeight: "bold"
+                            }}
+                            title={`Account: ${props.cloudUser.email}`}
+                        >
+                            ☁ {props.cloudUser.name.split(" ")[0]}
+                        </button>
+                        <ShareButton
+                            cloudNote={props.cloudNote}
+                            onNoteUpdate={props.onNoteUpdate}
+                        />
+                    </>
+                ) : (
+                    <button
+                        onClick={props.onSignInClick}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "3px 8px",
+                            borderRadius: 4,
+                            fontSize: 11,
+                            cursor: "pointer",
+                            border: "1px solid var(--border-color)",
+                            background: "transparent",
+                            color: "var(--text-secondary)"
+                        }}
+                    >
+                        ☁ Sign in to Cloud
+                    </button>
+                )}
             </div>
         </div>
     );

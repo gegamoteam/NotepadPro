@@ -79,7 +79,7 @@ export default function ShareButton({ cloudNote, onNoteUpdate }: ShareButtonProp
   };
 
   const btnBase: React.CSSProperties = {
-    padding: "2px 8px",
+    padding: "3px 8px",
     borderRadius: 4,
     fontSize: 11,
     cursor: loading ? "not-allowed" : "pointer",

@@ -851,6 +851,13 @@ function App() {
         onZoomOut={() => setZoom(z => Math.max(8, z - 2))}
         onRestoreZoom={() => setZoom(14)}
         onSettings={() => setIsSettingsOpen(true)}
+        cloudUser={cloudUser}
+        onSignInClick={() => setIsAuthModalOpen(true)}
+        cloudNote={activeCloudNote}
+        onNoteUpdate={(updated) =>
+          activeNote &&
+          setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: updated }))
+        }
       />
 
       <SettingsModal
@@ -976,37 +983,7 @@ function App() {
               col={cursor.col}
               isSaving={isSaving}
               version={appVersion}
-            >
-              {/* Cloud status: sign-in button or sharing controls */}
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
-                {cloudUser ? (
-                  <>
-                    <span
-                      style={{ fontSize: 10, color: "var(--text-secondary, #888)", cursor: "pointer" }}
-                      onClick={() => setIsAuthModalOpen(true)}
-                      title={`Signed in as ${cloudUser.email}`}
-                    >
-                      ☁ {cloudUser.name.split(" ")[0]}
-                    </span>
-                    <ShareButton
-                      cloudNote={activeCloudNote}
-                      onNoteUpdate={(updated) =>
-                        activeNote &&
-                        setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: updated }))
-                      }
-                    />
-                  </>
-                ) : (
-                  <span
-                    style={{ fontSize: 10, color: "var(--text-secondary, #888)", cursor: "pointer" }}
-                    onClick={() => setIsAuthModalOpen(true)}
-                    title="Sign in to enable cloud sync and sharing"
-                  >
-                    ☁ Sign in
-                  </span>
-                )}
-              </span>
-            </StatusBar>
+            />
           )}
         </div>
       </div>
