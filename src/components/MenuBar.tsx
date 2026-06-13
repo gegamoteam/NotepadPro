@@ -230,9 +230,9 @@ export default function MenuBar(props: MenuBarProps) {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 4,
-                                padding: "3px 8px",
+                                padding: "4px 10px",
                                 borderRadius: 4,
-                                fontSize: 11,
+                                fontSize: 12,
                                 cursor: "pointer",
                                 border: "1px solid var(--border-color)",
                                 background: "var(--sidebar-active)",
@@ -243,10 +243,12 @@ export default function MenuBar(props: MenuBarProps) {
                         >
                             ☁ {props.cloudUser.name.split(" ")[0]}
                         </button>
-                        <ShareButton
-                            cloudNote={props.cloudNote}
-                            onNoteUpdate={props.onNoteUpdate}
-                        />
+                        <div style={{ display: "flex", alignItems: "center", borderLeft: "1px solid var(--border-color)", paddingLeft: 8 }}>
+                            <ShareButton
+                                cloudNote={props.cloudNote}
+                                onNoteUpdate={props.onNoteUpdate}
+                            />
+                        </div>
                     </>
                 ) : (
                     <button

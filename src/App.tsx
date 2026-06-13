@@ -298,7 +298,7 @@ function App() {
         // Non-fatal: local file is always the source of truth
         console.warn("Cloud sync failed (non-fatal):", e);
       }
-    }, 3000);
+    }, 500);
     return () => clearTimeout(timer);
   }, [cloudUser, activeNote, activeNoteContent]); // eslint-disable-line react-hooks/exhaustive-deps
 

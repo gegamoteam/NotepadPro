@@ -25,11 +25,14 @@ export default function ShareButton({ cloudNote, onNoteUpdate }: ShareButtonProp
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
-  if (!cloudNote) return null;
-
-  const isPublic = cloudNote.is_public && !!cloudNote.share_url;
+  const isPublic = cloudNote?.is_public && !!cloudNote?.share_url;
 
   const handleEnableSharing = async () => {
+    if (!cloudNote) {
+      setError("Please wait, note is syncing to cloud...");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -53,6 +56,7 @@ export default function ShareButton({ cloudNote, onNoteUpdate }: ShareButtonProp
   };
 
   const handleDisableSharing = async () => {
+    if (!cloudNote) return;
     setLoading(true);
     setError("");
     try {
@@ -72,16 +76,16 @@ export default function ShareButton({ cloudNote, onNoteUpdate }: ShareButtonProp
   };
 
   const handleCopyLink = async () => {
-    if (!cloudNote.share_url) return;
+    if (!cloudNote?.share_url) return;
     await navigator.clipboard.writeText(cloudNote.share_url);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
   };
 
   const btnBase: React.CSSProperties = {
-    padding: "3px 8px",
+    padding: "4px 10px",
     borderRadius: 4,
-    fontSize: 11,
+    fontSize: 12,
     cursor: loading ? "not-allowed" : "pointer",
     opacity: loading ? 0.6 : 1,
     border: "1px solid var(--border-color)",
