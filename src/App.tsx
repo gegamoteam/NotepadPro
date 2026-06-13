@@ -25,7 +25,7 @@ import { settingsService, AutosaveSettings, ShortcutSettings } from "./services/
 import { updaterService, UpdateInfo } from "./services/updater";
 import { isSubpath } from "./utils/paths";
 import { AuthUser, isSignedIn, loadToken, storeToken } from "./services/authService";
-import { upsertCloudNote, CloudNote } from "./services/cloudApi";
+import { upsertCloudNote, CloudNote, isShareableNoteName } from "./services/cloudApi";
 import "./styles/global.css";
 
 import "./styles/resizer.css";
@@ -283,7 +283,7 @@ function App() {
 
   // Auto-sync active note to cloud when it is opened or saved (only if signed in)
   useEffect(() => {
-    if (!cloudUser || !activeNote || !activeNote.path) return;
+    if (!cloudUser || !activeNote || !activeNote.path || !isShareableNoteName(activeNote.name)) return;
     
     // Sync immediately upon note select/change or save
     const syncNote = async () => {
@@ -786,6 +786,7 @@ function App() {
   if (!rootPath) return <div>Loading...</div>;
 
   const activeCloudNote = activeNote ? (cloudNoteMap[activeNote.path] ?? null) : null;
+  const activeNoteIsShareable = activeNote ? isShareableNoteName(activeNote.name) : false;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", overflow: "hidden" }}>
@@ -855,6 +856,7 @@ function App() {
         cloudUser={cloudUser}
         onSignInClick={() => setIsAuthModalOpen(true)}
         cloudNote={activeCloudNote}
+        canShare={!!activeNote && activeNoteIsShareable}
         onNoteUpdate={(updated) =>
           activeNote &&
           setCloudNoteMap((prev) => ({ ...prev, [activeNote.path]: updated }))

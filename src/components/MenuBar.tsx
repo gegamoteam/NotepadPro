@@ -41,6 +41,7 @@ interface MenuBarProps {
     cloudUser: { id: string; name: string; email: string } | null;
     onSignInClick: () => void;
     cloudNote: any | null;
+    canShare: boolean;
     onNoteUpdate: (updated: any) => void;
 }
 
@@ -246,6 +247,7 @@ export default function MenuBar(props: MenuBarProps) {
                         <div style={{ display: "flex", alignItems: "center", borderLeft: "1px solid var(--border-color)", paddingLeft: 8 }}>
                             <ShareButton
                                 cloudNote={props.cloudNote}
+                                canShare={props.canShare}
                                 onNoteUpdate={props.onNoteUpdate}
                             />
                         </div>

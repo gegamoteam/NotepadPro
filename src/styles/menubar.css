@@ -104,3 +104,211 @@
 .dropdown-item:hover .submenu {
     display: block;
 }
+
+.cloud-controls {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 8px;
+}
+
+.account-button,
+.cloud-signin-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-color);
+    background: var(--input-bg);
+    cursor: default;
+    height: 24px;
+    padding: 0 9px;
+}
+
+.account-button {
+    background: var(--sidebar-active);
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.cloud-signin-button {
+    color: var(--text-secondary);
+}
+
+.cloud-signin-button:hover,
+.account-button:hover {
+    background: var(--sidebar-hover);
+}
+
+.share-control {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.share-trigger {
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text-color);
+    font-size: 12px;
+    cursor: default;
+}
+
+.share-trigger:hover:not(:disabled),
+.share-trigger.is-public {
+    border-color: color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
+    background: color-mix(in srgb, var(--accent-color) 10%, var(--input-bg));
+}
+
+.share-trigger:disabled {
+    opacity: 0.55;
+}
+
+.share-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.share-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--sidebar-active);
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.share-trigger.is-public .share-pill {
+    color: #0f7b3a;
+    background: rgba(34, 197, 94, 0.14);
+}
+
+[data-theme='dark'] .share-trigger.is-public .share-pill {
+    color: #63d991;
+}
+
+.share-pill-icon,
+.share-menu-icon,
+.share-menu-check,
+.share-url-icon {
+    width: 13px;
+    height: 13px;
+}
+
+.share-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 2500;
+    width: 260px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--dropdown-bg);
+    color: var(--text-color);
+    box-shadow: 0 12px 30px var(--shadow-color);
+}
+
+.share-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px 8px;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.share-menu-header strong {
+    color: var(--text-color);
+}
+
+.share-menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 30px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 12px;
+    text-align: left;
+    cursor: default;
+}
+
+.share-menu-item:hover:not(:disabled) {
+    background: var(--sidebar-active);
+}
+
+.share-menu-item:disabled {
+    opacity: 0.55;
+}
+
+.share-menu-check {
+    margin-left: auto;
+    color: var(--accent-color);
+}
+
+.share-menu-separator {
+    height: 1px;
+    background: var(--border-color);
+    margin: 6px 4px;
+}
+
+.share-url {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 4px 2px;
+    padding: 6px;
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.share-url span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.share-error {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 5px);
+    z-index: 2600;
+    width: max-content;
+    max-width: 260px;
+    padding: 5px 8px;
+    border: 1px solid rgba(220, 38, 38, 0.35);
+    border-radius: 4px;
+    background: var(--dropdown-bg);
+    color: var(--danger-color);
+    box-shadow: 0 8px 18px var(--shadow-color);
+    font-size: 11px;
+}
+
+.spin {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -1,55 +1,66 @@
-/**
- * ShareButton.tsx
- *
- * Compact inline button shown in the editor status bar for authenticated users.
- * Manages public link sharing for the currently active cloud note.
- *
- * Behaviour:
- *  - Shows "Share" if the note is not yet public.
- *  - Shows "Shared — Copy Link" + "Stop Sharing" if it is public.
- *  - Fires enable/disable sharing calls to the Rust backend API.
- *  - On enable: displays a toast with the share URL and copies it to clipboard.
- *  - On disable: clears the share state.
- */
-
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, Copy, Globe2, Link2, Loader2, Lock, Share2 } from "lucide-react";
 import { enableSharing, disableSharing, CloudNote } from "../services/cloudApi";
 
 interface ShareButtonProps {
   cloudNote: CloudNote | null;
+  canShare: boolean;
   onNoteUpdate: (updated: CloudNote) => void;
 }
 
-export default function ShareButton({ cloudNote, onNoteUpdate }: ShareButtonProps) {
+export default function ShareButton({ cloudNote, canShare, onNoteUpdate }: ShareButtonProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
   const isPublic = cloudNote?.is_public && !!cloudNote?.share_url;
+  const disabledReason = !canShare
+    ? "Open a .md or .txt note to share"
+    : !cloudNote
+      ? "Syncing note before sharing..."
+      : "";
+  const statusText = isPublic ? "Public" : "Private";
+  const StatusIcon = isPublic ? Globe2 : Lock;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const showError = (message: string) => {
+    setError(message);
+    window.setTimeout(() => setError(""), 3000);
+  };
 
   const handleEnableSharing = async () => {
-    if (!cloudNote) {
-      setError("Please wait, note is syncing to cloud...");
-      setTimeout(() => setError(""), 3000);
+    if (!canShare || !cloudNote) {
+      showError(disabledReason || "Please wait, note is syncing to cloud...");
       return;
     }
+
     setLoading(true);
     setError("");
     try {
       const result = await enableSharing(cloudNote.id);
-      const updated: CloudNote = {
+      onNoteUpdate({
         ...cloudNote,
         is_public: true,
         share_token: result.share_token,
         share_url: result.share_url,
-      };
-      onNoteUpdate(updated);
-      // Auto-copy to clipboard
+      });
       await navigator.clipboard.writeText(result.share_url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+      setOpen(true);
+      window.setTimeout(() => setCopied(false), 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to enable sharing.");
+      showError(err instanceof Error ? err.message : "Failed to enable sharing.");
     } finally {
       setLoading(false);
     }
@@ -57,19 +68,19 @@ export default function ShareButton({ cloudNote, onNoteUpdate }: ShareButtonProp
 
   const handleDisableSharing = async () => {
     if (!cloudNote) return;
+
     setLoading(true);
     setError("");
     try {
       await disableSharing(cloudNote.id);
-      const updated: CloudNote = {
+      onNoteUpdate({
         ...cloudNote,
         is_public: false,
         share_token: null,
         share_url: null,
-      };
-      onNoteUpdate(updated);
+      });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to disable sharing.");
+      showError(err instanceof Error ? err.message : "Failed to disable sharing.");
     } finally {
       setLoading(false);
     }
@@ -77,74 +88,86 @@ export default function ShareButton({ cloudNote, onNoteUpdate }: ShareButtonProp
 
   const handleCopyLink = async () => {
     if (!cloudNote?.share_url) return;
+
     await navigator.clipboard.writeText(cloudNote.share_url);
     setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
-  };
-
-  const btnBase: React.CSSProperties = {
-    padding: "4px 10px",
-    borderRadius: 4,
-    fontSize: 12,
-    cursor: loading ? "not-allowed" : "pointer",
-    opacity: loading ? 0.6 : 1,
-    border: "1px solid var(--border-color)",
-    background: "transparent",
-    color: "var(--text-color)",
-    transition: "background 0.15s",
+    window.setTimeout(() => setCopied(false), 3000);
   };
 
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, marginLeft: 8 }}>
-      {error && (
-        <span style={{ color: "#ef4444", fontSize: 10 }}>{error}</span>
-      )}
+    <div className="share-control" ref={menuRef}>
+      {error && <span className="share-error">{error}</span>}
+      <button
+        type="button"
+        className={`share-trigger ${isPublic ? "is-public" : ""}`}
+        disabled={loading || !canShare}
+        title={disabledReason || (isPublic ? cloudNote?.share_url ?? "Public note" : "Share this note")}
+        onClick={() => {
+          if (!cloudNote) {
+            handleEnableSharing();
+            return;
+          }
+          setOpen((value) => !value);
+        }}
+      >
+        {loading ? <Loader2 className="share-icon spin" /> : <Share2 className="share-icon" />}
+        <span>Share</span>
+        <span className="share-pill">
+          <StatusIcon className="share-pill-icon" />
+          {statusText}
+        </span>
+        <ChevronDown className="share-icon" />
+      </button>
 
-      {!isPublic ? (
-        <>
-          <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Private Note</span>
+      {open && cloudNote && (
+        <div className="share-menu" role="menu">
+          <div className="share-menu-header">
+            <span>Visibility</span>
+            <strong>{statusText}</strong>
+          </div>
+
           <button
+            type="button"
+            className="share-menu-item"
+            disabled={loading || isPublic}
             onClick={handleEnableSharing}
-            disabled={loading}
-            title="Publish a read-only public link for this note"
-            style={{ ...btnBase }}
           >
-            {loading ? "…" : "🔗 Share"}
+            <Globe2 className="share-menu-icon" />
+            <span>Public</span>
+            {isPublic && <Check className="share-menu-check" />}
           </button>
-        </>
-      ) : (
-        <>
-          <span style={{ fontSize: 11, color: "#22c55e", fontWeight: "bold" }}>Shared Note</span>
+
           <button
-            onClick={handleCopyLink}
-            disabled={loading}
-            title={cloudNote.share_url ?? ""}
-            style={{
-              ...btnBase,
-              background: copied
-                ? "rgba(34,197,94,0.15)"
-                : "rgba(37,99,235,0.12)",
-              borderColor: copied ? "rgba(34,197,94,0.4)" : "rgba(37,99,235,0.3)",
-              color: copied ? "#22c55e" : "#60a5fa",
-            }}
-          >
-            {copied ? "✓ Copied!" : "🔗 Copy Link"}
-          </button>
-          <button
+            type="button"
+            className="share-menu-item"
+            disabled={loading || !isPublic}
             onClick={handleDisableSharing}
-            disabled={loading}
-            title="Revoke public access to this note"
-            style={{
-              ...btnBase,
-              background: "rgba(239,68,68,0.08)",
-              borderColor: "rgba(239,68,68,0.25)",
-              color: "#f87171",
-            }}
           >
-            {loading ? "…" : "Unshare"}
+            <Lock className="share-menu-icon" />
+            <span>Private</span>
+            {!isPublic && <Check className="share-menu-check" />}
           </button>
-        </>
+
+          <div className="share-menu-separator" />
+
+          <button
+            type="button"
+            className="share-menu-item"
+            disabled={!isPublic || loading}
+            onClick={handleCopyLink}
+          >
+            {copied ? <Check className="share-menu-icon" /> : <Copy className="share-menu-icon" />}
+            <span>{copied ? "Copied link" : "Copy link"}</span>
+          </button>
+
+          {cloudNote.share_url && (
+            <div className="share-url" title={cloudNote.share_url}>
+              <Link2 className="share-url-icon" />
+              <span>{cloudNote.share_url}</span>
+            </div>
+          )}
+        </div>
       )}
-    </span>
+    </div>
   );
 }

@@ -35,7 +35,7 @@ export const BACKEND_API_URL =
 
 export const SITE_URL =
   import.meta.env.VITE_SITE_URL ||
-  "https://www.notepadpro.lol";
+  "https://notepadpro.lol";
 
 // ─── Token Storage (via Tauri command) ─────────────────────────────────────
 

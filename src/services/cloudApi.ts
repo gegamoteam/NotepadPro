@@ -31,6 +31,10 @@ export interface ShareResult {
   share_url: string;
 }
 
+export function isShareableNoteName(name: string): boolean {
+  return /\.(md|txt)$/i.test(name.trim());
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -87,6 +91,10 @@ export async function upsertCloudNote(note: {
   title: string;
   content: string;
 }): Promise<CloudNote> {
+  if (!isShareableNoteName(note.title)) {
+    throw new Error("Only .md and .txt notes can be synced or shared.");
+  }
+
   return apiFetch<CloudNote>("/api/notes", {
     method: "PUT",
     body: JSON.stringify(note),
