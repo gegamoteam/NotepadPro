@@ -101,16 +101,20 @@ export default function ShareButton({ cloudNote, onNoteUpdate }: ShareButtonProp
       )}
 
       {!isPublic ? (
-        <button
-          onClick={handleEnableSharing}
-          disabled={loading}
-          title="Publish a read-only public link for this note"
-          style={{ ...btnBase }}
-        >
-          {loading ? "…" : "🔗 Share"}
-        </button>
+        <>
+          <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Private Note</span>
+          <button
+            onClick={handleEnableSharing}
+            disabled={loading}
+            title="Publish a read-only public link for this note"
+            style={{ ...btnBase }}
+          >
+            {loading ? "…" : "🔗 Share"}
+          </button>
+        </>
       ) : (
         <>
+          <span style={{ fontSize: 11, color: "#22c55e", fontWeight: "bold" }}>Shared Note</span>
           <button
             onClick={handleCopyLink}
             disabled={loading}
