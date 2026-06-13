@@ -19,7 +19,6 @@ import MenuBar from "./components/MenuBar";
 import UpdatePopup from "./components/UpdatePopup";
 import UpdateToast from "./components/UpdateToast";
 import AuthModal from "./components/AuthModal";
-import ShareButton from "./components/ShareButton";
 import { useNotes } from "./hooks/useNotes";
 import { useAutosave } from "./hooks/useAutosave";
 import { settingsService, AutosaveSettings, ShortcutSettings } from "./services/settings";
