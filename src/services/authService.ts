@@ -23,6 +23,31 @@ import { invoke } from "@tauri-apps/api/core";
 //   2. Our Rust backend API (for note operations)
 //
 // Both are hard-coded to production since this is a production-only app.
+/**
+ * authService.ts
+ *
+ * Handles login/logout with Neon Auth and stores the JWT access_token
+ * securely in the app's data directory via Tauri commands.
+ *
+ * Security notes:
+ *  - The token is written to a JSON file in the OS app data directory
+ *    (not in the notes folder or any world-readable location).
+ *  - The file is only readable by the current user on all major OSes.
+ *  - We never log the token value itself, only its presence/absence.
+ *  - On logout the file is cleared (token removed from disk).
+ *
+ * The Neon Auth REST endpoint used is the "sign-in with email" route:
+ *   POST <NEON_AUTH_BASE_URL>/auth/sign-in/email
+ */
+
+import { invoke } from "@tauri-apps/api/core";
+
+// ─── Production backend URLs ───────────────────────────────────────────────
+// These are the only two URLs the desktop app ever calls:
+//   1. Neon Auth REST endpoint (for login)
+//   2. Our Rust backend API (for note operations)
+//
+// Both are hard-coded to production since this is a production-only app.
 // Users who build from source can override via VITE_ env vars at build time.
 
 export const NEON_AUTH_BASE_URL =
@@ -31,13 +56,11 @@ export const NEON_AUTH_BASE_URL =
 
 export const BACKEND_API_URL =
   import.meta.env.VITE_BACKEND_API_URL ||
-  "https://notex-backend.gegamo.xyz"; // update once deployed
+  "https://notepadpro.lol";
 
 export const SITE_URL =
   import.meta.env.VITE_SITE_URL ||
   "https://notepadpro.lol";
-
-// ─── Token Storage (via Tauri command) ─────────────────────────────────────
 
 const TOKEN_FILE_KEY = "cloud_auth_token";
 
