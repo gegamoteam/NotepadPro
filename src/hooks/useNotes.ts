@@ -164,8 +164,10 @@ export function useNotes(rootPath: string) {
         }
     }, [rootPath, refreshNotes]);
 
-    // Load a note
-    const openNote = useCallback(async (note: Note) => {
+    // Load a note. Returns true on success, false if the file could not be read
+    // (e.g. it was deleted/moved on disk) so the caller can surface the error
+    // to the user instead of silently leaving a stale selection.
+    const openNote = useCallback(async (note: Note): Promise<boolean> => {
         // Cancel any pending rename timer from previous note
         if (debounceTimer.current) {
             clearTimeout(debounceTimer.current);
@@ -188,8 +190,10 @@ export function useNotes(rootPath: string) {
                     });
                 }
             }
+            return true;
         } catch (error) {
             console.error("Failed to read note:", error);
+            return false;
         }
     }, [rootPath]);
 

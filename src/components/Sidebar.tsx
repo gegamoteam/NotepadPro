@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Note } from "../types/note";
 import "../styles/sidebar.css";
 import InputModal from "./InputModal";
@@ -11,7 +11,7 @@ import { isSubpath } from "../utils/paths";
 
 interface SidebarProps {
     notes: Note[];
-    onOpenNote: (note: Note) => void;
+    onOpenNote: (note: Note) => Promise<boolean> | boolean;
     activeNotePath?: string;
 
     // Actions
@@ -75,21 +75,17 @@ export default function Sidebar({
 
     const [deletePermanently, setDeletePermanently] = useState(false); // Checkbox state
 
-    // Multi-selection State
+    // Missing-note modal: shown when a sidebar entry's file can't be read
+    // (e.g. it was deleted or moved on disk). Asks the user if they want to
+    // remove the stale entry from the list.
+    const [missingNoteModal, setMissingNoteModal] = useState<{ note: Note } | null>(null);
+
+    // Multi-selection State. `selectedPaths` is for multi-select operations
+    // (context menu, batch actions). The single "currently displayed" note is
+    // always driven by `activeNotePath` so the two never drift apart and we
+    // never end up with two sidebar items highlighted at once.
     const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
     const [lastSelectedPath, setLastSelectedPath] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (activeNotePath) {
-            if (!selectedPaths.includes(activeNotePath)) {
-                setSelectedPaths([activeNotePath]);
-                setLastSelectedPath(activeNotePath);
-            }
-        } else {
-            setSelectedPaths([]);
-            setLastSelectedPath(null);
-        }
-    }, [activeNotePath]);
 
     const getVisiblePaths = (): string[] => {
         return notes
@@ -97,9 +93,19 @@ export default function Sidebar({
             .map(n => n.path);
     };
 
-    const handleItemClick = (e: React.MouseEvent, item: Note) => {
+    const handleItemClick = async (e: React.MouseEvent, item: Note) => {
         e.stopPropagation();
-        onOpenNote(item);
+
+        // Try to open the note first. If it succeeds, the active note changes
+        // and `activeNotePath` becomes the source of truth for the highlight.
+        // Only when the file can actually be opened do we commit the new
+        // selection state, so a failed open (deleted/missing file) never
+        // leaves the sidebar showing two highlighted items.
+        const opened = await Promise.resolve(onOpenNote(item));
+        if (!opened) {
+            setMissingNoteModal({ note: item });
+            return;
+        }
 
         const { newSelection, newLastSelected } = handleSelection(
             e,
@@ -176,6 +182,17 @@ export default function Sidebar({
         }
     };
 
+    // An item is visually selected when it is the currently displayed note.
+    // Additional multi-selected items (Ctrl/Shift+click) are also highlighted
+    // whenever there's more than one item in the selection, which avoids the
+    // "two items selected" bug that happened when `selectedPaths` and
+    // `activeNotePath` drifted apart (e.g. when the clicked file was missing).
+    const isItemSelected = (itemPath: string): boolean => {
+        if (itemPath === activeNotePath) return true;
+        if (selectedPaths.length > 1 && selectedPaths.includes(itemPath)) return true;
+        return false;
+    };
+
     // Render List
     const renderList = () => {
         // Filter & Sort
@@ -188,7 +205,7 @@ export default function Sidebar({
             <RichItem
                 key={item.path}
                 item={item}
-                isSelected={selectedPaths.includes(item.path) || item.path === activeNotePath}
+                isSelected={isItemSelected(item.path)}
                 isPinned={pinnedPaths.includes(item.path)}
                 onClick={(e) => handleItemClick(e, item)}
                 onContextMenu={(e) => handleContextMenu(e, item)}
@@ -260,6 +277,50 @@ export default function Sidebar({
                             <button onClick={() => setDeleteModal({ isOpen: false })} style={{ padding: '8px 16px', cursor: 'pointer' }}>Cancel</button>
                             <button onClick={executeDelete} style={{ padding: '8px 16px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
                                 {deletePermanently ? "Delete Forever" : "Remove"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Missing Note Modal: shown when a sidebar entry's file can't be
+                read (typically because it was deleted or moved on disk). */}
+            {missingNoteModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                    display: 'flex', justifyContent: 'center', alignItems: 'center'
+                }}>
+                    <div style={{
+                        background: 'var(--bg-color)', color: 'var(--text-color)', padding: '20px', borderRadius: '8px',
+                        width: '380px', maxWidth: '90vw', boxShadow: '0 4px 6px rgba(0,0,0,0.3)', border: '1px solid var(--border-color)'
+                    }}>
+                        <h3 style={{ marginTop: 0 }}>Note Not Found</h3>
+                        <p style={{ margin: '10px 0', wordBreak: 'break-all' }}>
+                            <strong>{missingNoteModal.note.name}</strong> could not be opened. It may have been deleted, moved, or renamed outside of NoteX.
+                        </p>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                            <button
+                                onClick={() => setMissingNoteModal(null)}
+                                style={{ padding: '8px 16px', cursor: 'pointer' }}
+                            >
+                                Keep in List
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const path = missingNoteModal.note.path;
+                                    setMissingNoteModal(null);
+                                    setSelectedPaths(prev => prev.filter(p => p !== path));
+                                    // Try a permanent delete first so the entry
+                                    // disappears from disk + sidebar. If that
+                                    // also fails (e.g. moved file), fall back
+                                    // to a soft delete so it stops being shown.
+                                    onDelete(path, true);
+                                }}
+                                style={{ padding: '8px 16px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                                Remove from List
                             </button>
                         </div>
                     </div>
