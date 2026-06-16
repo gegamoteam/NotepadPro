@@ -21,6 +21,9 @@ vi.mock("../../services/settings", () => ({
     settingsService: {
         loadPinned: vi.fn().mockResolvedValue([]),
         savePinned: vi.fn(),
+        loadLastOpenedNote: vi.fn().mockReturnValue(null),
+        saveLastOpenedNote: vi.fn(),
+        clearLastOpenedNote: vi.fn(),
     }
 }));
 
@@ -111,5 +114,152 @@ describe("useNotes hook", () => {
         expect(result.current.activeNote).toBeNull();
         expect(result.current.activeNoteContent).toBe("");
         expect(result.current.openedExternalNotes).not.toContainEqual(externalNote);
+    });
+
+    it("auto-creates a new note when updateContent is called with no active note", async () => {
+        const listNotesMock = vi.mocked(filesystem.listNotes);
+        listNotesMock.mockResolvedValue([]);
+
+        const writeNoteMock = vi.mocked(filesystem.writeNote);
+        // Make listNotes reflect the new file once it's been "written" so
+        // the post-write refreshNotes call doesn't wipe the optimistic
+        // sidebar entry.
+        writeNoteMock.mockImplementation(async (path) => {
+            listNotesMock.mockResolvedValue([
+                { path, name: path.split(/[/\\]/).pop() || "New Note.txt", isFolder: false, lastModified: Date.now() }
+            ]);
+            return true;
+        });
+
+        const { result } = renderHook(() => useNotes("C:\\Notes"));
+
+        // Wait for the initial refresh to settle so the empty fileSystemRoot
+        // is what the hook uses for ensureUniqueName.
+        await waitFor(() => {
+            expect(result.current.fileSystemRoot).toEqual([]);
+        });
+
+        // No active note yet.
+        expect(result.current.activeNote).toBeNull();
+        expect(result.current.activeNoteContent).toBe("");
+
+        await act(async () => {
+            await result.current.updateContent("hello world");
+        });
+
+        // A new note is materialised with the typed content.
+        expect(result.current.activeNote).not.toBeNull();
+        expect(result.current.activeNote?.name).toBe("New Note.txt");
+        expect(result.current.activeNote?.path).toBe("C:\\Notes\\New Note.txt");
+        expect(result.current.activeNoteContent).toBe("hello world");
+        expect(result.current.isDirty).toBe(true);
+
+        // The file is written to disk (possibly still in-flight; wait a tick).
+        await waitFor(() => {
+            expect(writeNoteMock).toHaveBeenCalledWith(
+                "C:\\Notes\\New Note.txt",
+                "hello world"
+            );
+        });
+
+        // The new note is remembered as the last-opened note.
+        expect(settingsService.saveLastOpenedNote).toHaveBeenCalledWith(
+            "C:\\Notes\\New Note.txt"
+        );
+
+        // The new note appears in the sidebar (optimistically added, then
+        // confirmed by the post-write refresh once the mock returns it).
+        await waitFor(() => {
+            expect(result.current.fileSystemRoot.some(
+                n => n.path === "C:\\Notes\\New Note.txt"
+            )).toBe(true);
+        });
+    });
+
+    it("does not auto-create a note when updateContent is called with an empty string", async () => {
+        const listNotesMock = vi.mocked(filesystem.listNotes);
+        listNotesMock.mockResolvedValue([]);
+
+        const writeNoteMock = vi.mocked(filesystem.writeNote);
+        writeNoteMock.mockResolvedValue(true);
+
+        const { result } = renderHook(() => useNotes("C:\\Notes"));
+
+        await waitFor(() => {
+            expect(result.current.fileSystemRoot).toEqual([]);
+        });
+
+        await act(async () => {
+            await result.current.updateContent("");
+        });
+
+        // No note should be created from an empty update.
+        expect(result.current.activeNote).toBeNull();
+        expect(writeNoteMock).not.toHaveBeenCalled();
+    });
+
+    it("continues updating the auto-created note on subsequent edits", async () => {
+        const listNotesMock = vi.mocked(filesystem.listNotes);
+        listNotesMock.mockResolvedValue([]);
+
+        const writeNoteMock = vi.mocked(filesystem.writeNote);
+        writeNoteMock.mockResolvedValue(true);
+
+        const { result } = renderHook(() => useNotes("C:\\Notes"));
+
+        await waitFor(() => {
+            expect(result.current.fileSystemRoot).toEqual([]);
+        });
+
+        await act(async () => {
+            await result.current.updateContent("h");
+        });
+
+        const firstPath = result.current.activeNote?.path;
+        expect(firstPath).toBe("C:\\Notes\\New Note.txt");
+
+        // Subsequent edits should flow through the normal update path
+        // (activeNote is now set) — no new notes should be created.
+        await act(async () => {
+            await result.current.updateContent("hello");
+        });
+
+        expect(result.current.activeNote?.path).toBe(firstPath);
+        expect(result.current.activeNoteContent).toBe("hello");
+    });
+
+    it("remembers the last-opened note and clears it when the active note is deleted", async () => {
+        const listNotesMock = vi.mocked(filesystem.listNotes);
+        listNotesMock.mockResolvedValue([
+            { path: "C:\\Notes\\a.txt", name: "a.txt", isFolder: false, lastModified: 200 }
+        ]);
+        const readNoteMock = vi.mocked(filesystem.readNote);
+        readNoteMock.mockResolvedValue("a content");
+
+        const { result } = renderHook(() => useNotes("C:\\Notes"));
+
+        await waitFor(() => {
+            expect(result.current.fileSystemRoot).toHaveLength(1);
+        });
+
+        const note = result.current.fileSystemRoot[0];
+
+        await act(async () => {
+            await result.current.openNote(note);
+        });
+
+        // Opening a note should save it as the last-opened note.
+        expect(settingsService.saveLastOpenedNote).toHaveBeenCalledWith(note.path);
+
+        // Clear the mock so we can assert the delete path.
+        vi.mocked(settingsService.saveLastOpenedNote).mockClear();
+        vi.mocked(settingsService.clearLastOpenedNote).mockClear();
+
+        // Hiding the active note should clear the last-opened bookmark.
+        await act(async () => {
+            await result.current.deleteItem(note.path, false);
+        });
+
+        expect(settingsService.clearLastOpenedNote).toHaveBeenCalled();
     });
 });

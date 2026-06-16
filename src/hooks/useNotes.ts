@@ -17,6 +17,10 @@ export function useNotes(rootPath: string) {
     const refreshTimer = useRef<number | null>(null);
     const knownPathsRef = useRef<Set<string>>(new Set());
     const hasLoadedRef = useRef(false);
+    // Tracks paths for which we've already kicked off an initial background
+    // file write. Prevents duplicate writes when updateContent fires multiple
+    // times before the active note state has propagated.
+    const initialWritesRef = useRef<Set<string>>(new Set());
 
     const [openedExternalNotes, setOpenedExternalNotes] = useState<Note[]>(() => {
         try {
@@ -152,6 +156,24 @@ export function useNotes(rootPath: string) {
         }
     };
 
+    // Generate a unique filename within the current workspace, appending
+    // " (2)", " (3)", ... as needed. Exposed so callers (e.g. App's new-note
+    // button) can also reuse the same naming convention.
+    const ensureUniqueName = useCallback((name: string): string => {
+        const existing = new Set(fileSystemRoot.map(note => note.name.toLowerCase()));
+        if (!existing.has(name.toLowerCase())) return name;
+        const dotIndex = name.lastIndexOf(".");
+        const base = dotIndex > 0 ? name.slice(0, dotIndex) : name;
+        const ext = dotIndex > 0 ? name.slice(dotIndex) : "";
+        let counter = 2;
+        let candidate = `${base} (${counter})${ext}`;
+        while (existing.has(candidate.toLowerCase())) {
+            counter += 1;
+            candidate = `${base} (${counter})${ext}`;
+        }
+        return candidate;
+    }, [fileSystemRoot]);
+
     // Watcher effect
     useEffect(() => {
         if (rootPath) {
@@ -194,6 +216,9 @@ export function useNotes(rootPath: string) {
             setActiveNote(note);
             setActiveNoteContent(content);
             setIsDirty(false);
+            // Remember this as the last-opened note so we can restore it on
+            // next launch.
+            settingsService.saveLastOpenedNote(note.path);
 
             // Successfully opened, so the file is no longer "known missing"
             setKeptMissingPaths(prev => {
@@ -276,6 +301,9 @@ export function useNotes(rootPath: string) {
             await filesystem.renameItem(oldPath, newPath);
             if (activeNote?.path === oldPath) {
                 setActiveNote(prev => prev ? ({ ...prev, path: newPath, name: newName }) : null);
+                // The active note's path changed; keep lastOpenedNote in sync
+                // so we can restore it under its new name next launch.
+                await settingsService.saveLastOpenedNote(newPath);
             }
             setOpenedExternalNotes(prev => prev.map(n => {
                 if (n.path === oldPath) {
@@ -292,11 +320,63 @@ export function useNotes(rootPath: string) {
 
     // Update content (from editor)
     const updateContent = useCallback(async (content: string) => {
+        // If there's no active note and the user has typed something,
+        // materialize a new note from that content. This lets the user start
+        // typing in an empty workspace (or after deleting the last note)
+        // without first having to click the "+" button.
+        if (!activeNote && content.length > 0) {
+            const filename = ensureUniqueName("New Note.txt");
+            const path = joinPath(rootPath, filename);
+            const newNote: Note = {
+                path,
+                name: filename,
+                isFolder: false,
+                lastModified: Date.now()
+            };
+
+            setActiveNote(newNote);
+            setActiveNoteContent(content);
+            setIsDirty(true);
+
+            // Optimistically add to the sidebar so the user sees their note
+            // immediately, even before the file is written to disk. The
+            // file watcher / refresh will reconcile this with the real
+            // filesystem state shortly after.
+            setFileSystemRoot(prev => {
+                if (prev.some(n => n.path === path)) return prev;
+                return [newNote, ...prev];
+            });
+
+            // Remember as the last-opened note.
+            settingsService.saveLastOpenedNote(path);
+
+            // Kick off the actual file write in the background. The autosave
+            // will also save subsequent edits; this just ensures the file
+            // exists right away (and that the note is durable even if the
+            // user has autosave disabled).
+            if (!initialWritesRef.current.has(path)) {
+                initialWritesRef.current.add(path);
+                (async () => {
+                    try {
+                        if (hiddenPaths.includes(path)) {
+                            const updated = hiddenPaths.filter(p => p !== path);
+                            setHiddenPaths(updated);
+                            await saveHiddenPaths(updated);
+                        }
+                        await filesystem.writeNote(path, content);
+                        await refreshNotes();
+                    } catch (e) {
+                        console.error("Failed to create note from content:", e);
+                    }
+                })();
+            }
+            return;
+        }
+
         setActiveNoteContent(content);
         setIsDirty(true);
 
         // Only update title for existing .txt files
-        // No auto-create - files must be created explicitly via + button
         if (activeNote && activeNote.name.endsWith(".txt")) {
             const firstLine = content.split('\n')[0].trim().replace(/[\\/:*?"<>|]/g, "");
 
@@ -321,12 +401,13 @@ export function useNotes(rootPath: string) {
                 }
             }
         }
-    }, [activeNote, renameItem]);
+    }, [activeNote, ensureUniqueName, rootPath, hiddenPaths, refreshNotes, renameItem]);
 
     // Create new note
     const createNote = useCallback(async (_parentPath: string | undefined, name: string) => {
         try {
-            const path = joinPath(rootPath, name);
+            const uniqueName = ensureUniqueName(name);
+            const path = joinPath(rootPath, uniqueName);
             if (hiddenPaths.includes(path)) {
                 const updatedHidden = hiddenPaths.filter(p => p !== path);
                 setHiddenPaths(updatedHidden);
@@ -334,12 +415,13 @@ export function useNotes(rootPath: string) {
             }
             await filesystem.writeNote(path, "");
             await refreshNotes();
+            await settingsService.saveLastOpenedNote(path);
             return path;
         } catch (e) {
             console.error(e);
             throw e;
         }
-    }, [rootPath, refreshNotes, hiddenPaths]);
+    }, [rootPath, refreshNotes, hiddenPaths, ensureUniqueName]);
 
     const createFolder = useCallback(async (parentPath: string, name: string) => {
         try {
@@ -387,6 +469,11 @@ export function useNotes(rootPath: string) {
             setActiveNote(null);
             setActiveNoteContent("");
             setIsDirty(false);
+            // The active note is gone, so the remembered last-opened path
+            // is stale. Clear it so we fall back to "most recent" on the
+            // next launch rather than trying (and failing) to reopen a
+            // deleted file.
+            settingsService.clearLastOpenedNote();
         }
         setOpenedExternalNotes(prev => prev.filter(n => n.path !== path));
         await refreshNotes(updatedHiddenPaths);
@@ -398,6 +485,7 @@ export function useNotes(rootPath: string) {
             setActiveNote(null);
             setActiveNoteContent("");
             setIsDirty(false);
+            settingsService.clearLastOpenedNote();
         }
     }, [activeNote]);
 
@@ -440,6 +528,7 @@ export function useNotes(rootPath: string) {
         renameItem,
         togglePin,
         createDraftNote,
+        ensureUniqueName,
         isDirty,
         isSaving,
         sortBy,

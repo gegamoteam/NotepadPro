@@ -153,6 +153,20 @@ export const settingsService = {
 
     saveAutoUpdateSettings(enabled: boolean): void {
         localStorage.setItem("autoUpdateEnabled", String(enabled));
+    },
+
+    // Last opened note path. Used to restore the previously-open note on
+    // launch when it's still available.
+    loadLastOpenedNote(): string | null {
+        return localStorage.getItem("lastOpenedNote");
+    },
+
+    saveLastOpenedNote(path: string): void {
+        localStorage.setItem("lastOpenedNote", path);
+    },
+
+    clearLastOpenedNote(): void {
+        localStorage.removeItem("lastOpenedNote");
     }
 };
 

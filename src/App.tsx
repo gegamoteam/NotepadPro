@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { documentDir, join } from "@tauri-apps/api/path";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -202,6 +202,7 @@ function App() {
     renameItem,
     pinnedPaths,
     togglePin,
+    ensureUniqueName,
     isDirty,
     isSaving,
     sortBy,
@@ -226,21 +227,6 @@ function App() {
       return `${trimmed}.${fallbackExtension}`;
     }
     return trimmed;
-  };
-
-  const ensureUniqueFilename = (filename: string) => {
-    const existing = new Set(fileSystemRoot.map(note => note.name.toLowerCase()));
-    if (!existing.has(filename.toLowerCase())) return filename;
-    const dotIndex = filename.lastIndexOf(".");
-    const base = dotIndex > 0 ? filename.slice(0, dotIndex) : filename;
-    const ext = dotIndex > 0 ? filename.slice(dotIndex) : "";
-    let counter = 2;
-    let candidate = `${base} (${counter})${ext}`;
-    while (existing.has(candidate.toLowerCase())) {
-      counter += 1;
-      candidate = `${base} (${counter})${ext}`;
-    }
-    return candidate;
   };
 
   const handleOpenExternalFile = useCallback(async (filePath: string) => {
@@ -398,7 +384,7 @@ function App() {
   const createNewNote = async () => {
     try {
       setSortBy("modified");
-      const filename = ensureUniqueFilename("New Note.txt");
+      const filename = ensureUniqueName("New Note.txt");
       const path = await _createNote(undefined, filename);
       const name = path.split(/[/\\]/).pop() || "New Note.txt";
       await openNote({ path, name, isFolder: false, lastModified: Date.now() });
@@ -410,7 +396,7 @@ function App() {
       const normalized = normalizeFilename(filename, "txt");
       if (!normalized) return;
       setSortBy("modified");
-      const uniqueName = ensureUniqueFilename(normalized);
+      const uniqueName = ensureUniqueName(normalized);
       const path = await _createNote(undefined, uniqueName);
       const name = path.split(/[/\\]/).pop() || uniqueName;
       await openNote({ path, name, isFolder: false, lastModified: Date.now() });
@@ -421,12 +407,12 @@ function App() {
     try {
       setSortBy("modified");
       const baseName = `New Note.${extension}`;
-      const filename = ensureUniqueFilename(baseName);
+      const filename = ensureUniqueName(baseName);
       const path = await _createNote(undefined, filename);
       const name = path.split(/[/\\]/).pop() || filename;
       await openNote({ path, name, isFolder: false, lastModified: Date.now() });
     } catch (e) { console.error(e); }
-  }, [setSortBy, ensureUniqueFilename, _createNote, openNote]);
+  }, [setSortBy, ensureUniqueName, _createNote, openNote]);
 
   // Auto-save: Controlled by settings - only runs when enabled AND dirty
   useAutosave(saveActiveNote, autosaveSettings.interval, autosaveSettings.enabled && isDirty);
@@ -501,22 +487,74 @@ function App() {
     return () => { unlisten.then(fn => fn()); };
   }, [createNoteWithExtension]);
 
-  // Startup file loader
+  // Auto-open on launch
+  // Priority:
+  //   1. OS-provided startup file (e.g. file double-clicked before launch)
+  //   2. Last note the user had open (if it still exists)
+  //   3. Most recently modified note in the workspace
+  //   4. Nothing — leave the editor empty so the user can start typing and
+  //      auto-create a new note from the first keystroke.
+  // We only run this once per rootPath; re-running it would clobber whatever
+  // note the user has manually opened in the meantime.
+  const lastAutoOpenedRootRef = useRef<string | null>(null);
   useEffect(() => {
-    async function checkStartupFile() {
-      if (rootPath) {
-        try {
-          const startupFile = await filesystem.getStartupFile();
-          if (startupFile) {
-            await handleOpenExternalFile(startupFile);
-          }
-        } catch (e) {
-          console.error("Error reading startup file:", e);
+    if (!rootPath) return;
+    if (lastAutoOpenedRootRef.current === rootPath) return;
+    if (activeNote) {
+      // Some other path (OS startup file, manual open, ...) already
+      // populated the active note. Mark this rootPath as handled and bail.
+      lastAutoOpenedRootRef.current = rootPath;
+      return;
+    }
+
+    let cancelled = false;
+
+    async function autoOpen() {
+      // Priority 1: OS startup file
+      try {
+        const startupFile = await filesystem.getStartupFile();
+        if (cancelled) return;
+        if (startupFile) {
+          await handleOpenExternalFile(startupFile);
+          lastAutoOpenedRootRef.current = rootPath;
+          return;
+        }
+      } catch (e) {
+        console.error("Error reading startup file:", e);
+      }
+
+      // Priority 2: Last opened note (workspace or external)
+      const lastPath = settingsService.loadLastOpenedNote();
+      if (lastPath) {
+        const lastNote = sidebarNotes.find(n => n.path === lastPath);
+        if (lastNote) {
+          await openNote(lastNote);
+          lastAutoOpenedRootRef.current = rootPath;
+          return;
         }
       }
+
+      // Priority 3: Most recently modified note
+      if (fileSystemRoot.length > 0) {
+        const mostRecent = [...fileSystemRoot].sort(
+          (a, b) => (b.lastModified || 0) - (a.lastModified || 0)
+        )[0];
+        if (mostRecent) {
+          await openNote(mostRecent);
+          lastAutoOpenedRootRef.current = rootPath;
+          return;
+        }
+      }
+
+      // Priority 4: no notes — don't mark the rootPath as handled, so we
+      // retry if fileSystemRoot later populates (e.g. after the initial
+      // directory scan finishes).
     }
-    checkStartupFile();
-  }, [rootPath, handleOpenExternalFile]);
+
+    autoOpen();
+
+    return () => { cancelled = true; };
+  }, [rootPath, sidebarNotes, fileSystemRoot, activeNote, handleOpenExternalFile, openNote]);
 
   // Single-instance event listener
   useEffect(() => {
