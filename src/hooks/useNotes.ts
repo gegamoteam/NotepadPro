@@ -31,6 +31,22 @@ export function useNotes(rootPath: string) {
         localStorage.setItem("openedExternalNotes", JSON.stringify(openedExternalNotes));
     }, [openedExternalNotes]);
 
+    // Paths the user has explicitly chosen to keep in the sidebar even though
+    // the underlying file is missing. Used to suppress the "Note Not Found"
+    // modal when the user clicks the same entry repeatedly.
+    const [keptMissingPaths, setKeptMissingPaths] = useState<Set<string>>(() => {
+        try {
+            const saved = localStorage.getItem("keptMissingPaths");
+            return saved ? new Set(JSON.parse(saved)) : new Set();
+        } catch {
+            return new Set();
+        }
+    });
+
+    useEffect(() => {
+        localStorage.setItem("keptMissingPaths", JSON.stringify(Array.from(keptMissingPaths)));
+    }, [keptMissingPaths]);
+
     // Sort state
     const [sortBy, setSortBy] = useState<'date' | 'name' | 'modified'>('modified');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -179,6 +195,14 @@ export function useNotes(rootPath: string) {
             setActiveNoteContent(content);
             setIsDirty(false);
 
+            // Successfully opened, so the file is no longer "known missing"
+            setKeptMissingPaths(prev => {
+                if (!prev.has(note.path)) return prev;
+                const next = new Set(prev);
+                next.delete(note.path);
+                return next;
+            });
+
             if (rootPath) {
                 const isExternal = !isSubpath(rootPath, note.path);
                 if (isExternal) {
@@ -193,9 +217,21 @@ export function useNotes(rootPath: string) {
             return true;
         } catch (error) {
             console.error("Failed to read note:", error);
+            // If the user previously chose to keep this missing note in the
+            // list, don't keep surfacing the modal — silently drop the entry
+            // from the sidebar instead, since they have no way to recover it.
+            if (keptMissingPaths.has(note.path)) {
+                setFileSystemRoot(prev => prev.filter(n => n.path !== note.path));
+                setOpenedExternalNotes(prev => prev.filter(n => n.path !== note.path));
+                if (activeNote?.path === note.path) {
+                    setActiveNote(null);
+                    setActiveNoteContent("");
+                    setIsDirty(false);
+                }
+            }
             return false;
         }
-    }, [rootPath]);
+    }, [rootPath, keptMissingPaths, activeNote]);
 
     // Save active note
     const saveActiveNote = useCallback(async () => {
@@ -319,28 +355,41 @@ export function useNotes(rootPath: string) {
 
     // Advanced Delete Item
     const deleteItem = useCallback(async (path: string, permanent: boolean = false) => {
-        try {
-            let updatedHiddenPaths: string[] | undefined;
+        let updatedHiddenPaths: string[] | undefined;
 
-            if (permanent) {
+        if (permanent) {
+            try {
                 await filesystem.deleteItem(path);
                 // For permanent delete, hiddenPaths doesn't change, pass undefined
-            } else {
-                updatedHiddenPaths = [...hiddenPaths, path];
-                setHiddenPaths(updatedHiddenPaths);
-                await saveHiddenPaths(updatedHiddenPaths);
+            } catch (e) {
+                // The file may already be gone from disk (this is the normal
+                // case for the "Note Not Found" modal's Remove button). We
+                // still want the sidebar entry to disappear, so swallow the
+                // error and let the rest of the cleanup run.
+                console.warn("Disk delete failed (file may already be missing):", e);
             }
-
-            if (activeNote?.path === path) {
-                setActiveNote(null);
-                setActiveNoteContent("");
-                setIsDirty(false);
-            }
-            setOpenedExternalNotes(prev => prev.filter(n => n.path !== path));
-            await refreshNotes(updatedHiddenPaths);
-        } catch (e) {
-            console.error(e);
+        } else {
+            updatedHiddenPaths = [...hiddenPaths, path];
+            setHiddenPaths(updatedHiddenPaths);
+            await saveHiddenPaths(updatedHiddenPaths);
         }
+
+        // Clear any "keep in list" flag for this path so a future file with
+        // the same path doesn't inherit the stale acknowledgement.
+        setKeptMissingPaths(prev => {
+            if (!prev.has(path)) return prev;
+            const next = new Set(prev);
+            next.delete(path);
+            return next;
+        });
+
+        if (activeNote?.path === path) {
+            setActiveNote(null);
+            setActiveNoteContent("");
+            setIsDirty(false);
+        }
+        setOpenedExternalNotes(prev => prev.filter(n => n.path !== path));
+        await refreshNotes(updatedHiddenPaths);
     }, [activeNote, refreshNotes, hiddenPaths, rootPath]);
 
     const closeExternalNote = useCallback((path: string) => {
@@ -363,6 +412,18 @@ export function useNotes(rootPath: string) {
         setPinnedPaths(newPinned);
         await settingsService.savePinned(newPinned);
     }, [pinnedPaths]);
+
+    // Mark a path as "kept" by the user when the missing-note modal is
+    // dismissed with "Keep in List". This suppresses future "Note Not Found"
+    // modals for the same path.
+    const keepMissingNote = useCallback((path: string) => {
+        setKeptMissingPaths(prev => {
+            if (prev.has(path)) return prev;
+            const next = new Set(prev);
+            next.add(path);
+            return next;
+        });
+    }, []);
 
     return {
         activeNote,
@@ -388,6 +449,7 @@ export function useNotes(rootPath: string) {
         hiddenPaths, // Export
         rootPath,
         openedExternalNotes,
-        closeExternalNote
+        closeExternalNote,
+        keepMissingNote
     };
 }

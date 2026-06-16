@@ -207,7 +207,8 @@ function App() {
     sortBy,
     setSortBy,
     openedExternalNotes,
-    closeExternalNote
+    closeExternalNote,
+    keepMissingNote
   } = useNotes(rootPath);
 
   const sidebarNotes = useMemo(() => {
@@ -820,6 +821,7 @@ function App() {
             onAdvancedSearch={() => setIsAdvSearchOpen(true)}
             rootPath={rootPath}
             onCloseExternalNote={closeExternalNote}
+            onKeepMissingNote={keepMissingNote}
           />
         </div>
 

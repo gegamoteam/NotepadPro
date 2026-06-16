@@ -34,6 +34,7 @@ interface SidebarProps {
 
     rootPath: string;
     onCloseExternalNote?: (path: string) => void;
+    onKeepMissingNote?: (path: string) => void;
 }
 
 export default function Sidebar({
@@ -52,7 +53,8 @@ export default function Sidebar({
     onSortChange,
     isCollapsed,
     rootPath,
-    onCloseExternalNote
+    onCloseExternalNote,
+    onKeepMissingNote
 }: SidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item?: Note, items?: string[] } | null>(null);
@@ -314,7 +316,16 @@ export default function Sidebar({
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
                             <button
-                                onClick={() => setMissingNoteModal(null)}
+                                onClick={() => {
+                                    const path = missingNoteModal.note.path;
+                                    // Record this path so the modal doesn't
+                                    // keep reappearing on every click, and the
+                                    // next attempt to open it will silently
+                                    // drop the entry from the sidebar.
+                                    onKeepMissingNote?.(path);
+                                    setMissingNoteModal(null);
+                                    setSelectedPaths(prev => prev.filter(p => p !== path));
+                                }}
                                 style={{ padding: '8px 16px', cursor: 'pointer' }}
                             >
                                 Keep in List
@@ -324,10 +335,11 @@ export default function Sidebar({
                                     const path = missingNoteModal.note.path;
                                     setMissingNoteModal(null);
                                     setSelectedPaths(prev => prev.filter(p => p !== path));
-                                    // Try a permanent delete first so the entry
-                                    // disappears from disk + sidebar. If that
-                                    // also fails (e.g. moved file), fall back
-                                    // to a soft delete so it stops being shown.
+                                    // Force a permanent delete so the entry
+                                    // disappears from disk + sidebar. The
+                                    // deleteItem handler is resilient if the
+                                    // file is already gone from disk, so the
+                                    // sidebar entry will still be cleaned up.
                                     onDelete(path, true);
                                 }}
                                 style={{ padding: '8px 16px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
