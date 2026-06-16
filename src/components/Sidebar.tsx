@@ -118,20 +118,32 @@ export default function Sidebar({
         setLastSelectedPath(newLastSelected);
     };
 
-    const handleContextMenu = (e: React.MouseEvent, item?: Note) => {
+    const handleContextMenu = async (e: React.MouseEvent, item?: Note) => {
         e.preventDefault();
         e.stopPropagation();
 
+        const clientX = e.clientX;
+        const clientY = e.clientY;
+
         let currentSelection = selectedPaths;
         if (item && !selectedPaths.includes(item.path)) {
+            // Right-clicking a note that isn't part of the current selection
+            // navigates to it just like a left-click would. This keeps the
+            // sidebar highlight in sync with the editor, so the user can
+            // always see which file the context menu's actions will affect.
+            const opened = await Promise.resolve(onOpenNote(item));
+            if (!opened) {
+                setMissingNoteModal({ note: item });
+                return;
+            }
             currentSelection = [item.path];
             setSelectedPaths(currentSelection);
             setLastSelectedPath(item.path);
         }
 
         setContextMenu({
-            x: e.clientX,
-            y: e.clientY,
+            x: clientX,
+            y: clientY,
             item,
             items: currentSelection.length > 0 ? currentSelection : (item ? [item.path] : [])
         });
