@@ -104,11 +104,13 @@ export function useNotes(rootPath: string) {
 
             // Sort
             flatFiles.sort((a, b) => {
-                const aPinned = pinnedPaths.includes(a.path);
-                const bPinned = pinnedPaths.includes(b.path);
+                if (sortBy === 'name') {
+                    const aPinned = pinnedPaths.includes(a.path);
+                    const bPinned = pinnedPaths.includes(b.path);
 
-                if (aPinned && !bPinned) return -1;
-                if (!aPinned && bPinned) return 1;
+                    if (aPinned && !bPinned) return -1;
+                    if (!aPinned && bPinned) return 1;
+                }
 
                 let comparison = 0;
                 if (sortBy === 'name') {
@@ -414,6 +416,16 @@ export function useNotes(rootPath: string) {
                 await saveHiddenPaths(updatedHidden);
             }
             await filesystem.writeNote(path, "");
+            const newNote: Note = {
+                path,
+                name: uniqueName,
+                isFolder: false,
+                lastModified: Date.now()
+            };
+            setFileSystemRoot(prev => {
+                if (prev.some(n => n.path === path)) return prev;
+                return [newNote, ...prev];
+            });
             await refreshNotes();
             await settingsService.saveLastOpenedNote(path);
             return path;
